@@ -62,11 +62,19 @@
 
 (defun create-window (width height title gl-major-version gl-minor-version
                       &key (shared (cffi:null-pointer)) (visible nil) (samples 1))
-  (glfw:with-window-hints ((%glfw:+context-version-major+ gl-major-version)
-                           (%glfw:+context-version-minor+ gl-minor-version)
-                           (%glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
-                           (%glfw:+opengl-forward-compat+ %glfw:+true+)
-                           (%glfw:+depth-bits+ 24)
+  (if (featurep :bodge-gl2)
+      (progn
+        (unless (and (= gl-major-version 2) (= gl-minor-version 1))
+          (warn ":bodge-gl2 feature detected, forcing OpenGL 2.1 context (~A.~A requested)"
+                gl-major-version gl-minor-version))
+        (%glfw:window-hint %glfw:+context-version-major+ 2)
+        (%glfw:window-hint %glfw:+context-version-minor+ 1))
+      (progn
+        (%glfw:window-hint %glfw:+context-version-major+ gl-major-version)
+        (%glfw:window-hint %glfw:+context-version-minor+ gl-minor-version)
+        (%glfw:window-hint %glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
+        (%glfw:window-hint %glfw:+opengl-forward-compat+ %glfw:+true+)))
+  (glfw:with-window-hints ((%glfw:+depth-bits+ 24)
                            (%glfw:+stencil-bits+ 8)
                            (%glfw:+resizable+ %glfw:+false+)
                            (%glfw:+doublebuffer+ (if visible %glfw:+true+ %glfw:+false+))
