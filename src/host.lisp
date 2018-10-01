@@ -121,7 +121,7 @@
       (unwind-protect
            (bt:with-recursive-lock-held (*context-lock*)
              (unless (find-window-by-handle (%handle-of window))
-               (warn "Window is not running"))
+               (warn "Window is not open"))
              (remove-window window)
              (progm
                (destroy-window window))
