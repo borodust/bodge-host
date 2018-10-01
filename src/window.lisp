@@ -1,7 +1,7 @@
 (cl:in-package :bodge-host)
 
-(defclass application ()
-  ((window :initform nil :reader %window-of)
+(defclass window ()
+  ((handle :initform nil :reader %handle-of)
    (gl-major-version :initform 3)
    (gl-minor-version :initform 3)
    (title :initform nil :initarg :viewport-title)
@@ -11,54 +11,54 @@
    (decorated :initform t :initarg :viewport-decorated)))
 
 
-(defmethod initialize-instance :after ((this application) &key opengl-version)
+(defmethod initialize-instance :after ((this window) &key opengl-version)
   (with-slots (gl-major-version gl-minor-version) this
     (setf gl-major-version (or (first opengl-version) 3)
           gl-minor-version (or (second opengl-version) 3))))
 
 
-(defgeneric on-init (application)
+(defgeneric on-init (window)
   (:method (app) (declare (ignore app))))
 
 
-(defgeneric on-destroy (application)
+(defgeneric on-destroy (window)
   (:method (app) (declare (ignore app))))
 
 
-(defgeneric on-log (application level control-string &rest arguments)
-  (:method (application level control-string &rest arguments)
-    (declare (ignore application level control-string arguments))))
+(defgeneric on-log (window level control-string &rest arguments)
+  (:method (handle level control-string &rest arguments)
+    (declare (ignore handle level control-string arguments))))
 
 
-(defgeneric on-hide (application)
+(defgeneric on-hide (window)
   (:method (app) (declare (ignore app))))
 
 
-(defgeneric on-key-action (application key state)
+(defgeneric on-key-action (window key state)
   (:method (app key state) (declare (ignore app key state))))
 
 
-(defgeneric on-mouse-action (application button state)
+(defgeneric on-mouse-action (window button state)
   (:method (app key state) (declare (ignore app key state))))
 
 
-(defgeneric on-cursor-movement (application x y)
+(defgeneric on-cursor-movement (window x y)
   (:method (app x y) (declare (ignore app x y))))
 
 
-(defgeneric on-scroll (application x-offset y-offset)
+(defgeneric on-scroll (window x-offset y-offset)
   (:method (app x y) (declare (ignore app x y))))
 
 
-(defgeneric on-framebuffer-size-change (application width height)
+(defgeneric on-framebuffer-size-change (window width height)
   (:method (app w h) (declare (ignore app w h))))
 
 
-(defgeneric on-viewport-size-change (application width height)
+(defgeneric on-viewport-size-change (window width height)
   (:method (app w h) (declare (ignore app w h))))
 
 
-(defgeneric on-character-input (application character)
+(defgeneric on-character-input (window character)
   (:method (app c) (declare (ignore app c))))
 
 
@@ -90,29 +90,29 @@
       (%glfw:make-context-current (cffi:null-pointer)))))
 
 
-(defun init-application (application)
-  (with-slots ((this-window window) gl-major-version gl-minor-version width height title
+(defun init-window (window)
+  (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
                resizable decorated)
-      application
-    (on-log application :debug "Initializing GLFW context for OpenGL version ~A.~A"
+      window
+    (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
-    (let ((window (create-window (or width 640) (or height 480) (or title "Bodge Window")
+    (let ((handle (create-window (or width 640) (or height 480) (or title "Bodge Window")
                                  gl-major-version gl-minor-version :visible t
                                                                    :resizable resizable
                                                                    :decorated decorated)))
-      (unless window
+      (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
-      (init-callbacks window)
-      (setf this-window window)
-      (on-init application))))
+      (init-callbacks handle)
+      (setf this-handle handle)
+      (on-init window))))
 
 
-(defun destroy-application (application)
-  (with-slots (window) application
-    (on-destroy application)
-    (when window
-      (%glfw:destroy-window window))))
+(defun destroy-window (window)
+  (with-slots (handle) window
+    (on-destroy window)
+    (when handle
+      (%glfw:destroy-window handle))))
 
 
 (defun make-shared-context (window gl-major-version gl-minor-version)
@@ -127,100 +127,100 @@
       (max (f (floor (/ current-dpi +expected-dpi+))) 1f0))))
 
 
-(defun calc-scale (window)
+(defun calc-scale (handle)
   (claw:c-let ((fb-width :int)
                (win-width :int))
-    (%glfw:get-framebuffer-size window (fb-width &) (claw:ptr nil))
-    (%glfw:get-window-size window (win-width &) (claw:ptr nil))
+    (%glfw:get-framebuffer-size handle (fb-width &) (claw:ptr nil))
+    (%glfw:get-window-size handle (win-width &) (claw:ptr nil))
     (if (> fb-width win-width)
         1f0
         (calc-dpi-scale (%glfw:get-primary-monitor)))))
 
 
-(defun swap-buffers (application)
-  (with-slots (window) application
-    (%glfw:swap-buffers window)))
+(defun swap-buffers (window)
+  (with-slots (handle) window
+    (%glfw:swap-buffers handle)))
 
 
-(defun (setf viewport-title) (value application)
-  (with-slots (window) application
+(defun (setf viewport-title) (value window)
+  (with-slots (handle) window
     ;; some darwin systems go crazy throwing FPE around while setting a title
     (claw:with-float-traps-masked ()
-      (%glfw:set-window-title window (format nil "~a" value))
+      (%glfw:set-window-title handle (format nil "~a" value))
       value)))
 
 
-(defun viewport-size (application)
+(defun viewport-size (window)
   (claw:c-with ((width :int)
                 (height :int))
-    (%glfw:get-window-size (%window-of application) (width &) (height &))
+    (%glfw:get-window-size (%handle-of window) (width &) (height &))
     (vec2 width height)))
 
 
-(defun framebuffer-size (application)
+(defun framebuffer-size (window)
   (claw:c-with ((width :int)
                 (height :int))
-    (%glfw:get-framebuffer-size (%window-of application) (width &) (height &))
+    (%glfw:get-framebuffer-size (%handle-of window) (width &) (height &))
     (vec2 width height)))
 
 
-(defun (setf viewport-size) (value application)
+(defun (setf viewport-size) (value window)
   ;; same as with #'(setf viewport-title)
   ;; some darwin systems go nuts throwing FPE around while setting a size
   (claw:with-float-traps-masked ()
-    (%glfw:set-window-size (%window-of application) (floor (x value)) (floor (y value)))))
+    (%glfw:set-window-size (%handle-of window) (floor (x value)) (floor (y value)))))
 
 
-(defun cursor-position (application &optional (result-vec (vec2)))
-  (let ((height (y (viewport-size application))))
+(defun cursor-position (window &optional (result-vec (vec2)))
+  (let ((height (y (viewport-size window))))
     (claw:c-with ((x :double)
                   (y :double))
-      (%glfw:get-cursor-pos (%window-of application) (x &) (y &))
+      (%glfw:get-cursor-pos (%handle-of window) (x &) (y &))
       (setf (x result-vec) x
             (y result-vec) (- height y))
       result-vec)))
 
 
-(defun mouse-button-state (application button)
+(defun mouse-button-state (window button)
   (glfw-enumval->button-state
-   (%glfw:get-mouse-button (%window-of application) (mouse-button->glfw-enumval button))))
+   (%glfw:get-mouse-button (%handle-of window) (mouse-button->glfw-enumval button))))
 
 
-(defun keyboard-button-state (application button)
+(defun keyboard-button-state (window button)
   (glfw-enumval->keyboard-key
-   (%glfw:get-key (%window-of application) (keyboard-key->glfw-enumval button))))
+   (%glfw:get-key (%handle-of window) (keyboard-key->glfw-enumval button))))
 
 
-(defun lock-cursor (application)
-  (with-slots (window) application
-    (%glfw:set-input-mode window %glfw:+cursor+ %glfw:+cursor-disabled+)))
+(defun lock-cursor (window)
+  (with-slots (handle) window
+    (%glfw:set-input-mode handle %glfw:+cursor+ %glfw:+cursor-disabled+)))
 
 
-(defun unlock-cursor (application)
-  (with-slots (window) application
-    (%glfw:set-input-mode window %glfw:+cursor+ %glfw:+cursor-normal+)))
+(defun unlock-cursor (window)
+  (with-slots (handle) window
+    (%glfw:set-input-mode handle %glfw:+cursor+ %glfw:+cursor-normal+)))
 
 
-(defun viewport-scale (application)
-  (with-slots (window) application
-    (calc-scale window)))
+(defun viewport-scale (window)
+  (with-slots (handle) window
+    (calc-scale handle)))
 
 
-(defun (setf fullscreen-viewport-p) (value application)
-  (with-slots (window) application
+(defun (setf fullscreen-viewport-p) (value window)
+  (with-slots (handle) window
     (if value
         (let* ((monitor (%glfw:get-primary-monitor)))
           (claw:c-let ((video-mode %glfw:vidmode :from (%glfw:get-video-mode monitor)))
-            (%glfw:set-window-monitor window monitor 0 0
+            (%glfw:set-window-monitor handle monitor 0 0
                                       (video-mode :width)
                                       (video-mode :height)
                                       (video-mode :refresh-rate))))
-        (%glfw:set-window-monitor window (cffi:null-pointer) 100 100 640 480 %glfw:+dont-care+))))
+        (%glfw:set-window-monitor handle (cffi:null-pointer) 100 100 640 480 %glfw:+dont-care+))))
 
 
-(defun make-shared-rendering-context (application)
-  (with-slots (window gl-major-version gl-minor-version) application
-    (make-shared-context window gl-major-version gl-minor-version)))
+(defun make-shared-rendering-context (window)
+  (with-slots (handle gl-major-version gl-minor-version) window
+    (make-shared-context handle gl-major-version gl-minor-version)))
 
 
 (defun destroy-shared-rendering-context (context)

@@ -2,19 +2,19 @@
 
 (glfw:define-window-close-callback on-close (window)
   (%glfw:hide-window window)
-  (on-hide (find-application-by-window window)))
+  (on-hide (find-window-by-handle window)))
 
 
 (glfw:define-key-callback on-key-action (window key scancode action mod-keys)
   (declare (ignore scancode mod-keys))
-  (on-key-action (find-application-by-window window)
+  (on-key-action (find-window-by-handle window)
                  (glfw-enumval->keyboard-key key)
                  (glfw-enumval->button-state action)))
 
 
 (glfw:define-mouse-button-callback on-mouse-action (window button action mod-keys)
   (declare (ignore mod-keys))
-  (on-mouse-action (find-application-by-window window)
+  (on-mouse-action (find-window-by-handle window)
                    (glfw-enumval->mouse-button button) (glfw-enumval->button-state action)))
 
 
@@ -22,24 +22,24 @@
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-window-size window (width &) (height &))
-    (on-cursor-movement (find-application-by-window window) x (- height y))))
+    (on-cursor-movement (find-window-by-handle window) x (- height y))))
 
 
 (glfw:define-scroll-callback on-scroll (window x y)
-  (on-scroll (find-application-by-window window) x (- y)))
+  (on-scroll (find-window-by-handle window) x (- y)))
 
 
 (glfw:define-framebuffer-size-callback on-framebuffer-size-change (window w h)
-  (on-framebuffer-size-change (find-application-by-window window) w h))
+  (on-framebuffer-size-change (find-window-by-handle window) w h))
 
 
 (glfw:define-framebuffer-size-callback on-viewport-size-change (window w h)
-  (on-viewport-size-change (find-application-by-window window) w h))
+  (on-viewport-size-change (find-window-by-handle window) w h))
 
 
 (glfw:define-char-callback on-character-input (window char-code)
   (let ((character (code-char char-code)))
-    (on-character-input (find-application-by-window window) character)))
+    (on-character-input (find-window-by-handle window) character)))
 
 
 (claw:defcallback on-glfw-error :void ((code :int) (error-string :pointer))

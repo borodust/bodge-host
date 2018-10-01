@@ -1,8 +1,8 @@
 (bodge-util:define-package :bodge-host
     (:use :cl :bodge-concurrency :bodge-util :bodge-math)
-  (:export application
-           start-application
-           stop-application
+  (:export window
+           open-window
+           close-window
 
            progm
            push-to-main-thread

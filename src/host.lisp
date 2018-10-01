@@ -1,7 +1,7 @@
 (cl:in-package :bodge-host)
 
 
-(declaim (special *application*))
+(declaim (special *window*))
 
 
 (define-constant +expected-dpi+ 96)
@@ -15,36 +15,36 @@
   ((task-queue :initform (make-task-queue))
    (enabled-p :initform t)
    (swap-interval :initform 0)
-   (application-table :initform (make-hash-table))
+   (window-table :initform (make-hash-table))
    (shutdown-latch :initform (mt:make-latch))))
 
 
-(defun bind-main-rendering-context (application)
-  (%glfw:make-context-current (%window-of application)))
+(defun bind-main-rendering-context (window)
+  (%glfw:make-context-current (%handle-of window)))
 
 
-(defun find-application-by-window (win)
+(defun find-window-by-handle (win)
   (when-let ((context *context*))
-    (with-slots (application-table) context
+    (with-slots (window-table) context
       (when win
-        (gethash (cffi:pointer-address (claw:ptr win)) application-table)))))
+        (gethash (cffi:pointer-address (claw:ptr win)) window-table)))))
 
 
-(defun register-application (application)
+(defun register-window (window)
   (when-let* ((context *context*)
-              (win (%window-of application)))
-    (with-slots (application-table) context
+              (win (%handle-of window)))
+    (with-slots (window-table) context
       (bodge-concurrency:with-instance-lock-held (context)
         (let ((key (cffi:pointer-address (claw:ptr win))))
-          (setf (gethash key application-table) application))))))
+          (setf (gethash key window-table) window))))))
 
 
-(defun remove-application (application)
+(defun remove-window (window)
   (when-let* ((context *context*)
-              (win (%window-of application)))
-    (with-slots (application-table) context
+              (win (%handle-of window)))
+    (with-slots (window-table) context
       (bodge-concurrency:with-instance-lock-held (context)
-        (remhash (cffi:pointer-address (claw:ptr win)) application-table)))))
+        (remhash (cffi:pointer-address (claw:ptr win)) window-table)))))
 
 
 (defun push-to-main-thread (fn)
@@ -64,7 +64,6 @@
          (claw:with-float-traps-masked ()
            (glfw:with-init ()
              (%glfw:set-error-callback (claw:callback 'on-glfw-error))
-             (%glfw:swap-interval 0)
              (mt:open-latch init-latch)
              (loop while enabled-p
                    do (%glfw:wait-events)
@@ -82,33 +81,33 @@
     ctx))
 
 
-(defun start-application (application)
+(defun open-window (window)
   (mt:wait-with-latch (latch)
     (labels ((open-latch ()
                (mt:open-latch latch))
-             (%stop-application ()
-               (stop-application application)))
-      (in-new-thread ("bodge-application-start-thread")
+             (%close-window ()
+               (close-window window)))
+      (in-new-thread ("bodge-window-start-thread")
         (bind-for-serious-condition (#'open-latch)
           (bt:with-recursive-lock-held (*context-lock*)
             (unless *context*
               (setf *context* (create-context)))
-            (when (find-application-by-window (%window-of application))
-              (error "Application already started"))
+            (when (find-window-by-handle (%handle-of window))
+              (error "Window already started"))
             (progm
-              (bodge-util:bind-for-serious-condition (#'%stop-application)
+              (bodge-util:bind-for-serious-condition (#'%close-window)
                 (unwind-protect
                      (progn
-                       (init-application application)
-                       (register-application application))
+                       (init-window window)
+                       (register-window window))
                   (open-latch)))))))))
-  application)
+  window)
 
 
 (defun sweep-context (context)
-  (with-slots (app-table enabled-p shutdown-latch application-table) context
+  (with-slots (app-table enabled-p shutdown-latch window-table) context
     (with-instance-lock-held (context)
-      (when (= (hash-table-count application-table) 0)
+      (when (= (hash-table-count window-table) 0)
         (progm
           (setf enabled-p nil))
         (mt:wait-for-latch shutdown-latch)
@@ -116,20 +115,20 @@
         t))))
 
 
-(defun stop-application (application)
+(defun close-window (window)
   (mt:wait-with-latch (latch)
-    (in-new-thread ("bodge-application-stop-thread")
+    (in-new-thread ("bodge-window-stop-thread")
       (unwind-protect
            (bt:with-recursive-lock-held (*context-lock*)
-             (unless (find-application-by-window (%window-of application))
-               (warn "Application is not running"))
-             (remove-application application)
+             (unless (find-window-by-handle (%handle-of window))
+               (warn "Window is not running"))
+             (remove-window window)
              (progm
-               (destroy-application application))
+               (destroy-window window))
              (if (sweep-context *context*)
                  (setf *context* nil)))
         (mt:open-latch latch))))
-  application)
+  window)
 
 
 (defun swap-interval ()

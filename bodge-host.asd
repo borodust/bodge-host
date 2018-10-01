@@ -10,5 +10,5 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "callbacks")
-               (:file "application")
+               (:file "window")
                (:file "host")))
