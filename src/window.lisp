@@ -8,7 +8,8 @@
    (height :initform nil :initarg :viewport-height)
    (width :initform nil :initarg :viewport-width)
    (resizable :initform nil :initarg :viewport-resizable)
-   (decorated :initform t :initarg :viewport-decorated)))
+   (decorated :initform t :initarg :viewport-decorated)
+   (transparent :initform nil :initarg :viewport-transparent)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
@@ -64,7 +65,7 @@
 
 (defun create-window (width height title gl-major-version gl-minor-version
                       &key (shared (cffi:null-pointer)) (visible nil) (samples 1) (decorated t)
-                        (resizable nil))
+                        (resizable nil) (transparent nil))
   (if (featurep :bodge-gl2)
       (progn
         (unless (and (= gl-major-version 2) (= gl-minor-version 1))
@@ -85,21 +86,25 @@
                            (%glfw:+client-api+ %glfw:+opengl-api+)
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
                            (%glfw:+samples+ samples)
-                           (%glfw:+visible+ (if visible %glfw:+true+ %glfw:+false+)))
+                           (%glfw:+visible+ (if visible %glfw:+true+ %glfw:+false+))
+                           (%glfw:+transparent-framebuffer+ (if transparent
+                                                                %glfw:+true+
+                                                                %glfw:+false+)))
     (prog1 (%glfw:create-window width height title (cffi:null-pointer) shared)
       (%glfw:make-context-current (cffi:null-pointer)))))
 
 
 (defun init-window (window)
   (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
-               resizable decorated)
+               resizable decorated transparent)
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
     (let ((handle (create-window (or width 640) (or height 480) (or title "Bodge Window")
                                  gl-major-version gl-minor-version :visible t
                                                                    :resizable resizable
-                                                                   :decorated decorated)))
+                                                                   :decorated decorated
+                                                                   :transparent transparent)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
