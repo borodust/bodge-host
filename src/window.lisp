@@ -123,8 +123,8 @@
 
 (defun destroy-window (window)
   (with-slots (handle) window
-    (on-destroy window)
-    (when handle
+    (unwind-protect
+         (on-destroy window)
       (%glfw:destroy-window handle))))
 
 
