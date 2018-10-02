@@ -4,12 +4,12 @@
   ((handle :initform nil :reader %handle-of)
    (gl-major-version :initform 3)
    (gl-minor-version :initform 3)
-   (title :initform nil :initarg :viewport-title)
-   (height :initform nil :initarg :viewport-height)
-   (width :initform nil :initarg :viewport-width)
-   (resizable :initform nil :initarg :viewport-resizable)
-   (decorated :initform t :initarg :viewport-decorated)
-   (transparent :initform nil :initarg :viewport-transparent)))
+   (title :initform nil :initarg :title)
+   (height :initform nil :initarg :height)
+   (width :initform nil :initarg :width)
+   (resizable :initform nil :initarg :resizable)
+   (decorated :initform t :initarg :decorated)
+   (transparent :initform nil :initarg :transparent)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
@@ -63,6 +63,10 @@
   (:method (app c) (declare (ignore app c))))
 
 
+(defun %bool (val)
+  (if val %glfw:+true+ %glfw:+false+))
+
+
 (defun create-window (width height title gl-major-version gl-minor-version
                       &key (shared (cffi:null-pointer)) (visible nil) (samples 1) (decorated t)
                         (resizable nil) (transparent nil))
@@ -78,20 +82,23 @@
         (%glfw:window-hint %glfw:+context-version-minor+ gl-minor-version)
         (%glfw:window-hint %glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
         (%glfw:window-hint %glfw:+opengl-forward-compat+ %glfw:+true+)))
-  (glfw:with-window-hints ((%glfw:+depth-bits+ 24)
+  (glfw:with-window-hints ((%glfw:+alpha-bits+ 8)
+                           (%glfw:+depth-bits+ 24)
                            (%glfw:+stencil-bits+ 8)
-                           (%glfw:+resizable+ (if resizable %glfw:+true+ %glfw:+false+))
-                           (%glfw:+decorated+ (if decorated %glfw:+true+ %glfw:+false+))
-                           (%glfw:+doublebuffer+ (if visible %glfw:+true+ %glfw:+false+))
+                           (%glfw:+resizable+ (%bool resizable))
+                           (%glfw:+decorated+ (%bool decorated))
+                           (%glfw:+doublebuffer+ (%bool visible))
                            (%glfw:+client-api+ %glfw:+opengl-api+)
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
                            (%glfw:+samples+ samples)
-                           (%glfw:+visible+ (if visible %glfw:+true+ %glfw:+false+))
-                           (%glfw:+transparent-framebuffer+ (if transparent
-                                                                %glfw:+true+
-                                                                %glfw:+false+)))
-    (prog1 (%glfw:create-window width height title (cffi:null-pointer) shared)
-      (%glfw:make-context-current (cffi:null-pointer)))))
+                           (%glfw:+visible+ (%bool visible))
+                           (%glfw:+transparent-framebuffer+ (%bool visible)))
+    (let ((win (%glfw:create-window width height title (cffi:null-pointer) shared)))
+      (when (and transparent
+                 (= %glfw:+false+ (%glfw:get-window-attrib win %glfw:+transparent-framebuffer+)))
+        (warn "Transparency requested, but not supported"))
+      (%glfw:make-context-current (cffi:null-pointer))
+      win)))
 
 
 (defun init-window (window)
