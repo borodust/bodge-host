@@ -68,7 +68,7 @@
 
 
 (defun create-window (width height title gl-major-version gl-minor-version
-                      &key (shared (cffi:null-pointer)) (visible nil) (samples 1) (decorated t)
+                      &key (shared (cffi:null-pointer)) (visible nil) (samples nil) (decorated t)
                         (resizable nil) (transparent nil))
   (if (featurep :bodge-gl2)
       (progn
@@ -82,6 +82,8 @@
         (%glfw:window-hint %glfw:+context-version-minor+ gl-minor-version)
         (%glfw:window-hint %glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
         (%glfw:window-hint %glfw:+opengl-forward-compat+ %glfw:+true+)))
+  (when samples
+    (%glfw:window-hint %glfw:+samples+ samples))
   (glfw:with-window-hints ((%glfw:+alpha-bits+ 8)
                            (%glfw:+depth-bits+ 24)
                            (%glfw:+stencil-bits+ 8)
@@ -90,7 +92,6 @@
                            (%glfw:+doublebuffer+ (%bool visible))
                            (%glfw:+client-api+ %glfw:+opengl-api+)
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
-                           (%glfw:+samples+ samples)
                            (%glfw:+visible+ (%bool visible))
                            (%glfw:+transparent-framebuffer+ (%bool visible)))
     (let ((win (%glfw:create-window width height title (cffi:null-pointer) shared)))
