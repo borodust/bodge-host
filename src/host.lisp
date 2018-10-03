@@ -24,7 +24,28 @@
      ,@body))
 
 
-(defun %loop (init-task)
+(defun init-context (init-task)
+  (with-slots (enabled-p) *context*
+    (setf enabled-p t)
+    (%glfw:set-error-callback (claw:callback 'on-glfw-error))
+    (with-body-in-main-thread ()
+      (init-main-loop init-task))))
+
+
+(defun release-context ()
+  (with-slots (enabled-p window-table) *context*
+    (setf enabled-p nil)
+    (unwind-protect
+         (loop for window being the hash-value in window-table
+               do (handler-case
+                      (destroy-window window)
+                    (serious-condition (e)
+                      (warn "Window destructuring failed. Skipping: ~A" e))))
+      (clrhash window-table))
+    (stop-main-runner)))
+
+
+(defun run-main-loop (init-task)
   (with-slots (task-queue) *context*
     (tagbody begin
        (restart-case
@@ -38,23 +59,13 @@
            (go begin))))))
 
 
-(defun run-main-loop (init-task)
-  (with-slots (enabled-p window-table) *context*
-   (claw:with-float-traps-masked ()
-     (glfw:with-init ()
-       (unwind-protect
-         (%loop init-task)
-         (with-context-locked
-           (setf enabled-p nil)
-           (clrhash window-table)))))))
-
-
-(defun init-context (init-task)
-  (with-slots (enabled-p) *context*
-    (setf enabled-p t)
-    (%glfw:set-error-callback (claw:callback 'on-glfw-error))
-    (with-body-in-main-thread ()
-      (run-main-loop init-task))))
+(defun init-main-loop (init-task)
+  (claw:with-float-traps-masked ()
+    (glfw:with-init ()
+      (unwind-protect
+           (run-main-loop init-task)
+        (with-context-locked
+          (release-context))))))
 
 
 (defun ensure-context (init-task)
