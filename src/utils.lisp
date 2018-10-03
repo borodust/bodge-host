@@ -1,5 +1,9 @@
 (cl:in-package :bodge-host)
 
+
+(define-constant +expected-dpi+ 96)
+
+
 (defenum keyboard-key
   :unknown
   :space :apostrophe :comma :minus :period :slash

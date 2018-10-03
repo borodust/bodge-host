@@ -4,8 +4,6 @@
 (declaim (special *window*))
 
 
-(define-constant +expected-dpi+ 96)
-
 (defclass host-context (bodge-concurrency:lockable)
   ((task-queue :initform (make-task-queue))
    (enabled-p :initform nil)

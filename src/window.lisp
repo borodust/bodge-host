@@ -93,7 +93,7 @@
                            (%glfw:+client-api+ %glfw:+opengl-api+)
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
                            (%glfw:+visible+ (%bool visible))
-                           (%glfw:+transparent-framebuffer+ (%bool visible)))
+                           (%glfw:+transparent-framebuffer+ (%bool transparent)))
     (let ((win (%glfw:create-window width height title (cffi:null-pointer) shared)))
       (when (and transparent
                  (= %glfw:+false+ (%glfw:get-window-attrib win %glfw:+transparent-framebuffer+)))
