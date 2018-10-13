@@ -125,7 +125,9 @@
   (with-slots (handle) window
     (unwind-protect
          (on-destroy window)
-      (%glfw:destroy-window handle))))
+      (bind-main-rendering-context window)
+      (%glfw:destroy-window handle)
+      (setf handle nil))))
 
 
 (defun make-shared-context (window gl-major-version gl-minor-version)
@@ -236,12 +238,13 @@
     (make-shared-context handle gl-major-version gl-minor-version)))
 
 
-(defun destroy-shared-rendering-context (context)
-  (%glfw:destroy-window context))
-
-
 (defun bind-shared-rendering-context (shared-context)
   (%glfw:make-context-current shared-context))
+
+
+(defun destroy-shared-rendering-context (context)
+  (bind-shared-rendering-context context)
+  (%glfw:destroy-window context))
 
 
 (defun release-rendering-context ()
