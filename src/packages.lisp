@@ -31,6 +31,7 @@
            swap-interval
            viewport-title
            viewport-size
+           viewport-position
            framebuffer-size
            fullscreen-viewport-p
            lock-cursor
@@ -45,6 +46,7 @@
            make-standard-cursor
            destroy-cursor
 
+           window-monitor
            available-monitors
            primary-monitor
            monitor-name

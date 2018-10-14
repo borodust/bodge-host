@@ -178,6 +178,57 @@
   result-vec)
 
 
+(defun viewport-position (window &optional (result-vec (vec2)))
+  (claw:c-with ((x-pos :int)
+                (y-pos :int)
+                (height :int))
+    (%glfw:get-window-size (%handle-of window) nil (height &))
+    (%glfw:get-window-pos (%handle-of window) (x-pos &) (y-pos &))
+    (setf (x result-vec) x-pos
+          (y result-vec) (- height y-pos)))
+  result-vec)
+
+
+(defun select-monitor (x-win y-win)
+  (claw:c-with ((x-monitor :int)
+                (y-monitor :int))
+    (flet ((%intersecting-p (x-origin y-origin rect-width rect-height)
+             (let ((x-len (- x-win x-origin))
+                   (y-len (- y-win y-origin)))
+               (and (<= 0 x-len rect-width)
+                    (<= 0 y-len rect-height)))))
+      (loop for monitor in (bodge-host:available-monitors)
+            for video-mode = (bodge-host:monitor-video-mode monitor)
+              thereis (progn
+                        (%glfw:get-monitor-pos monitor (x-monitor &) (y-monitor &))
+                        (and (%intersecting-p x-monitor y-monitor
+                                              (bodge-host:video-mode-width video-mode)
+                                              (bodge-host:video-mode-height video-mode))
+                             monitor))
+            finally (return (bodge-host:primary-monitor))))))
+
+
+(defun window-monitor (window)
+  (claw:c-with ((x-pos :int)
+                (y-pos :int))
+    (%glfw:get-window-pos (%handle-of window) (x-pos &) (y-pos &))
+    (let ((reported-monitor (%glfw:get-window-monitor (%handle-of window))))
+      (if (claw:null-pointer-p reported-monitor)
+          (select-monitor x-pos y-pos)
+          reported-monitor))))
+
+
+(defun (setf viewport-position) (value window)
+  (let* ((monitor (window-monitor window))
+         (monitor-height (video-mode-height (monitor-video-mode monitor))))
+    (claw:c-with ((height :int))
+      (%glfw:get-window-size (%handle-of window) nil (height &))
+      (%glfw:set-window-pos (%handle-of window)
+                            (floor (x value))
+                            (floor (- monitor-height (+ (y value) height))))))
+  value)
+
+
 (defun framebuffer-size (window &optional (result-vec (vec2)))
   (claw:c-with ((width :int)
                 (height :int))
@@ -196,12 +247,13 @@
 
 
 (defun cursor-position (window &optional (result-vec (vec2)))
-  (let ((height (y (viewport-size window))))
-    (claw:c-with ((x-pos :double)
-                  (y-pos :double))
-      (%glfw:get-cursor-pos (%handle-of window) (x-pos &) (y-pos &))
-      (setf (x result-vec) x-pos
-            (y result-vec) (- y-pos height))))
+  (claw:c-with ((x-pos :double)
+                (y-pos :double)
+                (height :int))
+    (%glfw:get-window-size (%handle-of window) nil (height &))
+    (%glfw:get-cursor-pos (%handle-of window) (x-pos &) (y-pos &))
+    (setf (x result-vec) x-pos
+          (y result-vec) (- height y-pos)))
   result-vec)
 
 
