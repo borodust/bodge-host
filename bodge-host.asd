@@ -10,5 +10,7 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "callbacks")
+               (:file "cursor")
                (:file "window")
+               (:file "monitor")
                (:file "host")))

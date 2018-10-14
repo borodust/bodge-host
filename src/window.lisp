@@ -2,6 +2,7 @@
 
 (defclass window ()
   ((handle :initform nil :reader %handle-of)
+   (cursor :initform nil)
    (gl-major-version :initform 3)
    (gl-minor-version :initform 3)
    (title :initform nil :initarg :title)
@@ -9,7 +10,8 @@
    (width :initform nil :initarg :width)
    (resizable :initform nil :initarg :resizable)
    (decorated :initform t :initarg :decorated)
-   (transparent :initform nil :initarg :transparent)))
+   (transparent :initform nil :initarg :transparent)
+   (floating :initform nil :initarg :floating)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
@@ -69,7 +71,7 @@
 
 (defun create-window (width height title gl-major-version gl-minor-version
                       &key (shared (cffi:null-pointer)) (visible nil) (samples nil) (decorated t)
-                        (resizable nil) (transparent nil))
+                        (resizable nil) (transparent nil) (floating nil))
   (if (featurep :bodge-gl2)
       (progn
         (unless (and (= gl-major-version 2) (= gl-minor-version 1))
@@ -93,6 +95,7 @@
                            (%glfw:+client-api+ %glfw:+opengl-api+)
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
                            (%glfw:+visible+ (%bool visible))
+                           (%glfw:+floating+ (%bool floating))
                            (%glfw:+transparent-framebuffer+ (%bool transparent)))
     (let ((win (%glfw:create-window width height title (cffi:null-pointer) shared)))
       (when (and transparent
@@ -104,7 +107,7 @@
 
 (defun init-window (window)
   (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
-               resizable decorated transparent)
+               resizable decorated transparent floating)
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
@@ -112,7 +115,8 @@
                                  gl-major-version gl-minor-version :visible t
                                                                    :resizable resizable
                                                                    :decorated decorated
-                                                                   :transparent transparent)))
+                                                                   :transparent transparent
+                                                                   :floating floating)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
@@ -165,35 +169,40 @@
       value)))
 
 
-(defun viewport-size (window)
+(defun viewport-size (window &optional (result-vec (vec2)))
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-window-size (%handle-of window) (width &) (height &))
-    (vec2 width height)))
+    (setf (x result-vec) width
+          (y result-vec) height))
+  result-vec)
 
 
-(defun framebuffer-size (window)
+(defun framebuffer-size (window &optional (result-vec (vec2)))
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-framebuffer-size (%handle-of window) (width &) (height &))
-    (vec2 width height)))
+    (setf (x result-vec) width
+          (y result-vec) height))
+  result-vec)
 
 
 (defun (setf viewport-size) (value window)
   ;; same as with #'(setf viewport-title)
   ;; some darwin systems go nuts throwing FPE around while setting a size
   (claw:with-float-traps-masked ()
-    (%glfw:set-window-size (%handle-of window) (floor (x value)) (floor (y value)))))
+    (%glfw:set-window-size (%handle-of window) (floor (x value)) (floor (y value))))
+  value)
 
 
 (defun cursor-position (window &optional (result-vec (vec2)))
   (let ((height (y (viewport-size window))))
-    (claw:c-with ((x :double)
-                  (y :double))
-      (%glfw:get-cursor-pos (%handle-of window) (x &) (y &))
-      (setf (x result-vec) x
-            (y result-vec) (- height y))
-      result-vec)))
+    (claw:c-with ((x-pos :double)
+                  (y-pos :double))
+      (%glfw:get-cursor-pos (%handle-of window) (x-pos &) (y-pos &))
+      (setf (x result-vec) x-pos
+            (y result-vec) (- y-pos height))))
+  result-vec)
 
 
 (defun mouse-button-state (window button)
@@ -216,6 +225,16 @@
     (%glfw:set-input-mode handle %glfw:+cursor+ %glfw:+cursor-normal+)))
 
 
+(defun show-window (window)
+  (with-slots (handle) window
+    (%glfw:show-window handle)))
+
+
+(defun hide-window (window)
+  (with-slots (handle) window
+    (%glfw:hide-window handle)))
+
+
 (defun viewport-scale (window)
   (with-slots (handle) window
     (calc-scale handle)))
@@ -230,7 +249,8 @@
                                       (video-mode :width)
                                       (video-mode :height)
                                       (video-mode :refresh-rate))))
-        (%glfw:set-window-monitor handle (cffi:null-pointer) 100 100 640 480 %glfw:+dont-care+))))
+        (%glfw:set-window-monitor handle (cffi:null-pointer) 100 100 640 480 %glfw:+dont-care+)))
+  value)
 
 
 (defun make-shared-rendering-context (window)
@@ -249,3 +269,14 @@
 
 (defun release-rendering-context ()
   (%glfw:make-context-current (cffi:null-pointer)))
+
+
+(defun cursor (window)
+  (with-slots (cursor) window
+    cursor))
+
+
+(defun (setf cursor) (cursor window)
+  (with-slots ((this-cursor cursor)) window
+    (%glfw:set-cursor (%handle-of window) cursor)
+    (setf this-cursor cursor)))

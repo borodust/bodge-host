@@ -3,6 +3,8 @@
   (:export window
            open-window
            close-window
+           show-window
+           hide-window
 
            progm
            push-to-main-thread
@@ -37,4 +39,20 @@
 
            cursor-position
            keyboard-button-state
-           mouse-button-state))
+           mouse-button-state
+
+           cursor
+           make-standard-cursor
+           destroy-cursor
+
+           available-monitors
+           primary-monitor
+           monitor-name
+           monitor-position
+           monitor-video-mode
+           video-mode-width
+           video-mode-height
+           video-mode-refresh-rate
+           video-mode-red-bits
+           video-mode-green-bits
+           video-mode-blue-bits))
