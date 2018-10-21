@@ -10,4 +10,12 @@
                         "AllPlanes"
                         "ZPixmap"
                         "XGetWindowAttributes"
-                        "XWindowAttributes"))
+                        "XWindowAttributes"
+                        ;; CG
+                        "CGMainDisplayID"
+                        "CGDisplayCreateImageForRect"
+                        "CGImageRelease"
+                        "CFDataGetBytePtr"
+                        "CFDataGetLength"
+                        "CFDataGetLength"
+                        "CFRelease"))

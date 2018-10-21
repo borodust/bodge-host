@@ -16,8 +16,10 @@
                              (:file "claw")
                              (:file "native-unix"
                               :if-feature (:and :unix (:not :darwin)))
+                             (:file "native-darwin"
+                              :if-feature :darwin)
                              (:file "native-unknown"
-                              :if-feature (:not (:or :unix :darwin :windows)))
+                              :if-feature (:not (:or :unix :darwin)))
                              (:module spec)))
                (:file "utils")
                (:file "callbacks")
