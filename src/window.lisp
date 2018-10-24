@@ -11,7 +11,8 @@
    (resizable :initform nil :initarg :resizable)
    (decorated :initform t :initarg :decorated)
    (transparent :initform nil :initarg :transparent)
-   (floating :initform nil :initarg :floating)))
+   (floating :initform nil :initarg :floating)
+   (samples :initform nil :initarg :samples)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
@@ -107,7 +108,7 @@
 
 (defun init-window (window)
   (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
-               resizable decorated transparent floating)
+               resizable decorated transparent floating samples)
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
@@ -116,7 +117,8 @@
                                                                    :resizable resizable
                                                                    :decorated decorated
                                                                    :transparent transparent
-                                                                   :floating floating)))
+                                                                   :floating floating
+                                                                   :samples samples)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
