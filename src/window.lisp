@@ -83,8 +83,9 @@
       (progn
         (%glfw:window-hint %glfw:+context-version-major+ gl-major-version)
         (%glfw:window-hint %glfw:+context-version-minor+ gl-minor-version)
-        (%glfw:window-hint %glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
-        (%glfw:window-hint %glfw:+opengl-forward-compat+ %glfw:+true+)))
+        (unless (= gl-major-version 2)
+          (%glfw:window-hint %glfw:+opengl-profile+ %glfw:+opengl-core-profile+)
+          (%glfw:window-hint %glfw:+opengl-forward-compat+ %glfw:+true+))))
   (when samples
     (%glfw:window-hint %glfw:+samples+ samples))
   (glfw:with-window-hints ((%glfw:+alpha-bits+ 8)
