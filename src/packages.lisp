@@ -32,6 +32,7 @@
            #:viewport-title
            #:viewport-size
            #:viewport-position
+           #:viewport-autoscaled-p
            #:framebuffer-size
            #:fullscreen-viewport-p
            #:lock-cursor

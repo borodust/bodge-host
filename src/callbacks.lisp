@@ -19,14 +19,17 @@
 
 
 (glfw:define-cursor-pos-callback on-cursor-movement (window x y)
-  (claw:c-with ((width :int)
-                (height :int))
-    (%glfw:get-window-size window (width &) (height &))
-    (on-cursor-movement (find-window-by-handle window) x (- height y))))
+  (claw:c-with ((height :int))
+    (%glfw:get-window-size window nil (height &))
+    (let* ((win (find-window-by-handle window))
+           (scale (%viewport-autoscale win)))
+      (on-cursor-movement win (/ x scale) (/ (- height y) scale)))))
 
 
 (glfw:define-scroll-callback on-scroll (window x y)
-  (on-scroll (find-window-by-handle window) x (- y)))
+  (let* ((win (find-window-by-handle window))
+         (scale (%viewport-autoscale win)))
+    (on-scroll win (/ x scale) (/ (- y) scale))))
 
 
 (glfw:define-framebuffer-size-callback on-framebuffer-size-change (window w h)

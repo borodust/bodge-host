@@ -12,7 +12,8 @@
    (decorated :initform t :initarg :decorated)
    (transparent :initform nil :initarg :transparent)
    (floating :initform nil :initarg :floating)
-   (samples :initform nil :initarg :samples)))
+   (samples :initform nil :initarg :samples)
+   (autoscaled :initform t :initarg :autoscaled :reader viewport-autoscaled-p)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
@@ -99,7 +100,11 @@
                            (%glfw:+visible+ (%bool visible))
                            (%glfw:+floating+ (%bool floating))
                            (%glfw:+transparent-framebuffer+ (%bool transparent)))
-    (let ((win (%glfw:create-window width height title (cffi:null-pointer) shared)))
+    (let ((win (%glfw:create-window (floor width)
+                                    (floor height)
+                                    title
+                                    (cffi:null-pointer)
+                                    shared)))
       (when (and transparent
                  (= %glfw:+false+ (%glfw:get-window-attrib win %glfw:+transparent-framebuffer+)))
         (warn "Transparency requested, but not supported"))
@@ -141,22 +146,22 @@
   (create-window 1 1 "" gl-major-version gl-minor-version :shared window))
 
 
-(defun calc-dpi-scale (monitor)
+(defun calc-dpi-scale (monitor expected-dpi)
   (claw:c-let ((mon-width :int)
                (video-mode %glfw:vidmode :from (%glfw:get-video-mode monitor)))
     (%glfw:get-monitor-physical-size monitor (mon-width &) (claw:ptr nil))
     (let* ((current-dpi (/ (video-mode :width) (/ mon-width 25.4))))
-      (max (f (floor (/ current-dpi +expected-dpi+))) 1f0))))
+      (max (f (floor (/ current-dpi expected-dpi))) 1f0))))
 
 
-(defun calc-scale (handle)
+(defun calc-scale (handle expected-dpi)
   (claw:c-let ((fb-width :int)
                (win-width :int))
     (%glfw:get-framebuffer-size handle (fb-width &) (claw:ptr nil))
     (%glfw:get-window-size handle (win-width &) (claw:ptr nil))
     (if (> fb-width win-width)
         1f0
-        (calc-dpi-scale (%glfw:get-primary-monitor)))))
+        (calc-dpi-scale (%glfw:get-primary-monitor) expected-dpi))))
 
 
 (defun swap-buffers (window)
@@ -290,9 +295,20 @@
     (%glfw:hide-window handle)))
 
 
-(defun viewport-scale (window)
+(defun viewport-scale (window &optional expected-dpi)
   (with-slots (handle) window
-    (calc-scale handle)))
+    (if expected-dpi
+        (calc-scale handle expected-dpi)
+        (claw:c-with ((x :float))
+          (%glfw:get-monitor-content-scale (window-monitor window) (x &) nil)
+          x))))
+
+
+(defun %viewport-autoscale (window)
+  (with-slots (autoscaled) window
+    (if autoscaled
+        (viewport-scale window)
+        1f0)))
 
 
 (defun (setf fullscreen-viewport-p) (value window)
