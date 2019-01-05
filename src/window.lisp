@@ -260,8 +260,9 @@
                 (height :int))
     (%glfw:get-window-size (%handle-of window) nil (height &))
     (%glfw:get-cursor-pos (%handle-of window) (x-pos &) (y-pos &))
-    (setf (x result-vec) x-pos
-          (y result-vec) (- height y-pos)))
+    (let ((scale (%viewport-autoscale window)))
+      (setf (x result-vec) (/ x-pos scale)
+            (y result-vec) (/ (- height y-pos) scale))))
   result-vec)
 
 
