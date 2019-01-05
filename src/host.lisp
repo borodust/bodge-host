@@ -45,16 +45,14 @@
     (stop-main-runner)))
 
 
-(defun run-main-loop (init-task)
+(defun run-main-loop ()
   (with-slots (task-queue) *context*
     (tagbody begin
        (restart-case
-           (progn
-             (funcall init-task)
-             (loop while (context-enabled-p)
-                   do (%glfw:wait-events)
-                      (drain task-queue)))
-         (continue ()
+           (loop while (context-enabled-p)
+                 do (%glfw:wait-events)
+                    (drain task-queue))
+         (ignore ()
            :report "Continue looping in main thread"
            (go begin))))))
 
@@ -63,7 +61,9 @@
   (claw:with-float-traps-masked ()
     (glfw:with-init ()
       (unwind-protect
-           (run-main-loop init-task)
+           (progn
+             (funcall init-task)
+             (run-main-loop))
         (with-context-locked
           (release-context))))))
 
