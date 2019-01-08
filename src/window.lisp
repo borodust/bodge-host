@@ -12,7 +12,9 @@
    (decorated :initform t :initarg :decorated)
    (transparent :initform nil :initarg :transparent)
    (floating :initform nil :initarg :floating)
+   (maximized :initform nil :initarg :maximized)
    (samples :initform nil :initarg :samples)
+   (position :initform nil :initarg :position)
    (autoscaled :initform t :initarg :autoscaled :reader viewport-autoscaled-p)))
 
 
@@ -73,7 +75,7 @@
 
 (defun create-window (width height title gl-major-version gl-minor-version
                       &key (shared (cffi:null-pointer)) (visible nil) (samples nil) (decorated t)
-                        (resizable nil) (transparent nil) (floating nil))
+                        (resizable nil) (transparent nil) (floating nil) (maximized nil) (focused t))
   (if (featurep :bodge-gl2)
       (progn
         (unless (and (= gl-major-version 2) (= gl-minor-version 1))
@@ -99,6 +101,8 @@
                            (%glfw:+context-creation-api+ %glfw:+native-context-api+)
                            (%glfw:+visible+ (%bool visible))
                            (%glfw:+floating+ (%bool floating))
+                           (%glfw:+maximized+ (%bool maximized))
+                           (%glfw:+focused+ (%bool focused))
                            (%glfw:+transparent-framebuffer+ (%bool transparent)))
     (let ((win (%glfw:create-window (floor width)
                                     (floor height)
@@ -114,7 +118,7 @@
 
 (defun init-window (window)
   (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
-               resizable decorated transparent floating samples)
+               resizable decorated transparent floating maximized samples position)
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
@@ -124,12 +128,15 @@
                                                                    :decorated decorated
                                                                    :transparent transparent
                                                                    :floating floating
+                                                                   :maximized maximized
                                                                    :samples samples)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
       (init-callbacks handle)
       (setf this-handle handle)
+      (when position
+        (setf (viewport-position window) position))
       (on-init window))))
 
 
