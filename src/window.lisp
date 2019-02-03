@@ -188,8 +188,9 @@
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-window-size (%handle-of window) (width &) (height &))
-    (setf (x result-vec) width
-          (y result-vec) height))
+    (let ((scale (%viewport-autoscale window)))
+      (setf (x result-vec) (floor (/ width scale))
+            (y result-vec) (floor (/ height scale)))))
   result-vec)
 
 
@@ -256,8 +257,11 @@
 (defun (setf viewport-size) (value window)
   ;; same as with #'(setf viewport-title)
   ;; some darwin systems go nuts throwing FPE around while setting a size
-  (claw:with-float-traps-masked ()
-    (%glfw:set-window-size (%handle-of window) (floor (x value)) (floor (y value))))
+  (let ((scale (%viewport-autoscale window)))
+    (claw:with-float-traps-masked ()
+      (%glfw:set-window-size (%handle-of window)
+                             (floor (* (x value) scale))
+                             (floor (* (y value) scale)))))
   value)
 
 

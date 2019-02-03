@@ -36,8 +36,11 @@
   (on-framebuffer-size-change (find-window-by-handle window) w h))
 
 
-(glfw:define-framebuffer-size-callback on-viewport-size-change (window w h)
-  (on-viewport-size-change (find-window-by-handle window) w h))
+(glfw:define-window-size-callback on-viewport-size-change (window w h)
+  (let ((scale (%viewport-autoscale (find-window-by-handle window))))
+    (on-viewport-size-change (find-window-by-handle window)
+                             (floor (/ w scale))
+                             (floor (/ h scale)))))
 
 
 (glfw:define-char-callback on-character-input (window char-code)
