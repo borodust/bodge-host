@@ -1,5 +1,10 @@
 (cl:in-package :bodge-host)
 
+(bodge-util:define-constant +default-window-width+ 640)
+
+(bodge-util:define-constant +default-window-height+ 480)
+
+
 (defclass window ()
   ((handle :initform nil :reader %handle-of)
    (cursor :initform nil)
@@ -117,19 +122,25 @@
 
 
 (defun init-window (window)
-  (with-slots ((this-handle handle) gl-major-version gl-minor-version width height title
-               resizable decorated transparent floating maximized samples position)
+  (with-slots ((this-handle handle) gl-major-version gl-minor-version
+               width height title
+               autoscaled resizable decorated transparent
+               floating maximized samples position)
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
-    (let ((handle (create-window (or width 640) (or height 480) (or title "Bodge Window")
-                                 gl-major-version gl-minor-version :visible t
-                                                                   :resizable resizable
-                                                                   :decorated decorated
-                                                                   :transparent transparent
-                                                                   :floating floating
-                                                                   :maximized maximized
-                                                                   :samples samples)))
+    (let* ((scale (if autoscaled (primary-monitor-content-scale) 1f0))
+           (width (* (or width +default-window-width+) scale))
+           (height (* (or height +default-window-height+) scale))
+           (handle (create-window width height
+                                  (or title "Bodge Window")
+                                  gl-major-version gl-minor-version :visible t
+                                                                    :resizable resizable
+                                                                    :decorated decorated
+                                                                    :transparent transparent
+                                                                    :floating floating
+                                                                    :maximized maximized
+                                                                    :samples samples)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
@@ -213,14 +224,18 @@
             finally (return (bodge-host:primary-monitor))))))
 
 
-(defun window-monitor (window)
+(defun %window-monitor (win-handle)
   (claw:c-with ((x-pos :int)
                 (y-pos :int))
-    (%glfw:get-window-pos (%handle-of window) (x-pos &) (y-pos &))
-    (let ((reported-monitor (%glfw:get-window-monitor (%handle-of window))))
+    (%glfw:get-window-pos win-handle (x-pos &) (y-pos &))
+    (let ((reported-monitor (%glfw:get-window-monitor win-handle)))
       (if (claw:null-pointer-p reported-monitor)
           (select-monitor x-pos y-pos)
           reported-monitor))))
+
+
+(defun window-monitor (window)
+  (%window-monitor (%handle-of window)))
 
 
 (defun (setf viewport-position) (value window)
@@ -311,9 +326,7 @@
   (with-slots (handle) window
     (if expected-dpi
         (calc-scale handle expected-dpi)
-        (claw:c-with ((x :float))
-          (%glfw:get-monitor-content-scale (window-monitor window) (x &) nil)
-          x))))
+        (monitor-content-scale (window-monitor window)))))
 
 
 (defun %viewport-autoscale (window)

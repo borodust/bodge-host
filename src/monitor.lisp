@@ -29,6 +29,16 @@
   result-vec)
 
 
+(defun monitor-content-scale (monitor)
+  (claw:c-with ((x :float))
+    (%glfw:get-monitor-content-scale monitor (x &) nil)
+    x))
+
+
+(defun primary-monitor-content-scale ()
+  (monitor-content-scale (%glfw:get-primary-monitor)))
+
+
 (defun video-mode-width (video-mode)
   (claw:c-val ((video-mode %glfw:vidmode))
     (video-mode :width)))
