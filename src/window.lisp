@@ -135,12 +135,12 @@
            (handle (create-window width height
                                   (or title "Bodge Window")
                                   gl-major-version gl-minor-version :visible t
-                                                                    :resizable resizable
-                                                                    :decorated decorated
-                                                                    :transparent transparent
-                                                                    :floating floating
-                                                                    :maximized maximized
-                                                                    :samples samples)))
+                                  :resizable resizable
+                                  :decorated decorated
+                                  :transparent transparent
+                                  :floating floating
+                                  :maximized maximized
+                                  :samples samples)))
       (unless handle
         (error "Failed to create main window. Please, check OpenGL version. Requested: ~A.~A"
                gl-major-version gl-minor-version))
