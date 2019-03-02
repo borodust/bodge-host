@@ -133,9 +133,9 @@
     (unless (find-window-by-handle (%handle-of window))
       (warn "Window is already closed"))
     (progm
+      (remove-window window)
       (unwind-protect
            (destroy-window window)
-        (remove-window window)
         (with-context-locked
           (sweep-context)))))
   window)
