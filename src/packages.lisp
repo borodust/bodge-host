@@ -1,5 +1,8 @@
 (bodge-util:define-package :bodge-host
   (:use :cl :bodge-concurrency :bodge-util :bodge-math)
+  (:reexport-from :bodge-math
+                  #:x
+                  #:y)
   (:export #:window
            #:open-window
            #:close-window
