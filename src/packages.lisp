@@ -24,6 +24,18 @@
            #:on-character-input
            #:on-log
 
+           #:register-controller-listener
+           #:remove-controller-listener
+           #:on-controller-connect
+           #:on-controller-disconnect
+           #:controller-name
+           #:controller-axis-count
+           #:controller-axis-value
+           #:controller-button-count
+           #:controller-button-pressed-p
+           #:controller-hat-count
+           #:controller-hat-state
+
            #:bind-main-rendering-context
            #:bind-shared-rendering-context
            #:release-rendering-context

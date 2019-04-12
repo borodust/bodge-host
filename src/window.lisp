@@ -4,7 +4,6 @@
 
 (bodge-util:define-constant +default-window-height+ 480)
 
-
 (defclass window ()
   ((handle :initform nil :reader %handle-of)
    (cursor :initform nil)
@@ -376,3 +375,8 @@
   (with-slots ((this-cursor cursor)) window
     (%glfw:set-cursor (%handle-of window) cursor)
     (setf this-cursor cursor)))
+
+
+(defun register-controller-hub (hub))
+
+(defun remove-controller-hub (hub))

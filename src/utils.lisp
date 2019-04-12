@@ -1,5 +1,8 @@
 (cl:in-package :bodge-host)
 
+(defvar *foreign-int-place* nil)
+
+(defvar *host-thread-p* nil)
 
 (define-constant +expected-dpi+ 96)
 
@@ -101,3 +104,8 @@
 
 (defun mouse-button->glfw-enumval (value)
   (gethash value *mouse-button-map* %glfw:+key-unknown+))
+
+
+(defun check-host-thread ()
+  (unless *host-thread-p*
+    (error "This function must be called within main thread. Use 'progm or #'push-to-main-thread")))

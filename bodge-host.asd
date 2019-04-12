@@ -4,7 +4,8 @@
   :license "MIT"
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
-  :depends-on (bodge-utilities claw bodge-concurrency bodge-math bodge-glfw glfw-blob)
+  :depends-on (bodge-utilities claw bodge-concurrency bodge-math
+                               bodge-glfw glfw-blob)
   :pathname "src/"
   :serial t
   :components ((:file "packages")
@@ -27,4 +28,5 @@
                (:file "window")
                (:file "monitor")
                (:file "native")
+               (:file "controller")
                (:file "host")))
