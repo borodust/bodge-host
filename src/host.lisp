@@ -55,11 +55,12 @@
 
 
 (defun release-context ()
-  (with-slots (enabled-p window-table controller-hub) *context*
+  (with-slots (enabled-p window-table controller-hub controller-listeners) *context*
     (destroy-controller-hub controller-hub)
     (claw:free *foreign-int-place*)
     (setf enabled-p nil
-          *foreign-int-place* nil)
+          *foreign-int-place* nil
+          controller-listeners nil)
     (unwind-protect
          (loop for window being the hash-value in window-table
                do (handler-case

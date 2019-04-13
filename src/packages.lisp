@@ -29,11 +29,11 @@
            #:on-controller-connect
            #:on-controller-disconnect
            #:controller-name
-           #:controller-axis-count
+           #:controller-axes
            #:controller-axis-value
-           #:controller-button-count
+           #:controller-buttons
            #:controller-button-pressed-p
-           #:controller-hat-count
+           #:controller-hats
            #:controller-hat-state
 
            #:bind-main-rendering-context
