@@ -108,8 +108,8 @@
                            (%glfw:+maximized+ (%bool maximized))
                            (%glfw:+focused+ (%bool focused))
                            (%glfw:+transparent-framebuffer+ (%bool transparent)))
-    (let ((win (%glfw:create-window (floor width)
-                                    (floor height)
+    (let ((win (%glfw:create-window (round width)
+                                    (round height)
                                     title
                                     (cffi:null-pointer)
                                     shared)))
@@ -168,7 +168,7 @@
                (video-mode %glfw:vidmode :from (%glfw:get-video-mode monitor)))
     (%glfw:get-monitor-physical-size monitor (mon-width &) (claw:ptr nil))
     (let* ((current-dpi (/ (video-mode :width) (/ mon-width 25.4))))
-      (max (f (floor (/ current-dpi expected-dpi))) 1f0))))
+      (max (f (round (/ current-dpi expected-dpi))) 1f0))))
 
 
 (defun calc-scale (handle expected-dpi)
@@ -194,13 +194,25 @@
       value)))
 
 
-(defun viewport-size (window &optional (result-vec (vec2)))
+(defun %viewport-dimensions (window)
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-window-size (%handle-of window) (width &) (height &))
     (let ((scale (%viewport-autoscale window)))
-      (setf (x result-vec) (floor (/ width scale))
-            (y result-vec) (floor (/ height scale)))))
+      (values (round (/ width scale))
+              (round (/ height scale))))))
+
+
+(defmacro with-viewport-dimensions ((width height) window &body body)
+  `(multiple-value-bind (,width ,height) (%viewport-dimensions ,window)
+     (declare (ignorable width height))
+     ,@body))
+
+
+(defun viewport-size (window &optional (result-vec (vec2)))
+  (with-viewport-dimensions (width height) window
+    (setf (x result-vec) width
+          (y result-vec) height))
   result-vec)
 
 
@@ -243,8 +255,8 @@
     (claw:c-with ((height :int))
       (%glfw:get-window-size (%handle-of window) nil (height &))
       (%glfw:set-window-pos (%handle-of window)
-                            (floor (x value))
-                            (floor (- monitor-height (+ (y value) height))))))
+                            (round (x value))
+                            (round (- monitor-height (+ (y value) height))))))
   value)
 
 (defun viewport-position (window &optional (result-vec (vec2)))
@@ -274,8 +286,8 @@
   (let ((scale (%viewport-autoscale window)))
     (claw:with-float-traps-masked ()
       (%glfw:set-window-size (%handle-of window)
-                             (floor (* (x value) scale))
-                             (floor (* (y value) scale)))))
+                             (round (* (x value) scale))
+                             (round (* (y value) scale)))))
   value)
 
 

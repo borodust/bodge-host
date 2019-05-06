@@ -19,10 +19,10 @@ X Offset:~20T ~A
 
 
 (defun read-screen-region (x y width height data-ptr)
-  (let* ((x (floor x))
-         (y (floor y))
-         (width (floor width))
-         (height (floor height))
+  (let* ((x (round x))
+         (y (round y))
+         (width (round width))
+         (height (round height))
          (display (%glfw:get-x11display))
          (default-screen (%host.native:x-default-screen display))
          (root-window (%host.native:x-root-window display default-screen)))

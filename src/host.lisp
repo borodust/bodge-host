@@ -174,7 +174,7 @@
 
 (defun (setf swap-interval) (value)
   (with-slots (swap-interval) *context*
-    (%glfw:swap-interval (setf swap-interval (floor value)))
+    (%glfw:swap-interval (setf swap-interval (round value)))
     swap-interval))
 
 

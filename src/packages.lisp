@@ -46,6 +46,7 @@
            #:swap-interval
            #:viewport-title
            #:viewport-size
+           #:with-viewport-dimensions
            #:viewport-position
            #:viewport-autoscaled-p
            #:framebuffer-size
