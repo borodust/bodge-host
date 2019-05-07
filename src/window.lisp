@@ -205,7 +205,7 @@
 
 (defmacro with-viewport-dimensions ((width height) window &body body)
   `(multiple-value-bind (,width ,height) (%viewport-dimensions ,window)
-     (declare (ignorable width height))
+     (declare (ignorable ,width ,height))
      ,@body))
 
 
