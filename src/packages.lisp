@@ -50,6 +50,7 @@
            #:viewport-position
            #:viewport-autoscaled-p
            #:framebuffer-size
+           #:with-framebuffer-dimensions
            #:fullscreen-viewport-p
            #:lock-cursor
            #:unlock-cursor

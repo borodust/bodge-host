@@ -271,10 +271,22 @@
             (y result-vec) (- monitor-height (+ y-pos height)))))
   result-vec)
 
-(defun framebuffer-size (window &optional (result-vec (vec2)))
+
+(defun %framebuffer-dimensions (window)
   (claw:c-with ((width :int)
                 (height :int))
     (%glfw:get-framebuffer-size (%handle-of window) (width &) (height &))
+    (values width height)))
+
+
+(defmacro with-framebuffer-dimensions ((width height) window &body body)
+  `(multiple-value-bind (,width ,height) (%framebuffer-dimensions ,window)
+     (declare (ignorable ,width ,height))
+     ,@body))
+
+
+(defun framebuffer-size (window &optional (result-vec (vec2)))
+  (with-framebuffer-dimensions (width height) window
     (setf (x result-vec) width
           (y result-vec) height))
   result-vec)
