@@ -78,8 +78,9 @@
 
 
 (defun create-window (width height title gl-major-version gl-minor-version
-                      &key (shared (cffi:null-pointer)) (visible nil) (samples nil) (decorated t)
-                        (resizable nil) (transparent nil) (floating nil) (maximized nil) (focused t))
+                      &key (shared (cffi:null-pointer)) (visible nil) (samples nil)
+                        (decorated t) (resizable nil) (transparent nil) (floating nil)
+                        (maximized nil) (focused t))
   (if (featurep :bodge-gl2)
       (progn
         (unless (and (= gl-major-version 2) (= gl-minor-version 1))
@@ -128,12 +129,17 @@
       window
     (on-log window :debug "Initializing GLFW context for OpenGL version ~A.~A"
             gl-major-version gl-minor-version)
+    ;; explicitly disable autoscaling for darwin systems:
+    ;; their viewports are natively scaled when appropriate
+    (when (featurep :darwin)
+      (setf autoscaled nil))
     (let* ((scale (if autoscaled (primary-monitor-content-scale) 1f0))
            (width (* (or width +default-window-width+) scale))
            (height (* (or height +default-window-height+) scale))
            (handle (create-window width height
-                                  (or title "Bodge Window")
-                                  gl-major-version gl-minor-version :visible t
+                                  (or title "Window")
+                                  gl-major-version gl-minor-version
+                                  :visible t
                                   :resizable resizable
                                   :decorated decorated
                                   :transparent transparent
@@ -349,7 +355,9 @@
   (with-slots (handle) window
     (if expected-dpi
         (calc-scale handle expected-dpi)
-        (monitor-content-scale (window-monitor window)))))
+        (claw:c-with ((scale :float))
+          (%glfw:get-window-content-scale handle (scale &) nil)
+          scale))))
 
 
 (defun %viewport-autoscale (window)
@@ -401,6 +409,8 @@
     (setf this-cursor cursor)))
 
 
-(defun register-controller-hub (hub))
+(defun register-controller-hub (hub)
+  (declare (ignore hub)))
 
-(defun remove-controller-hub (hub))
+(defun remove-controller-hub (hub)
+  (declare (ignore hub)))
