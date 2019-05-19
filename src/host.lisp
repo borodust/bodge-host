@@ -37,16 +37,16 @@
   `(push-to-main-thread (lambda () ,@body)))
 
 
-(defun invoke-controller-listeners (fu joystick-id)
+(defun invoke-controller-listeners (controller-fu gamepad-fu joystick-id)
   (with-slots (window-table controller-hub) *context*
     (loop with controller = (find-controller controller-hub joystick-id)
           with gamepad = (find-gamepad controller-hub joystick-id)
           for window being the hash-value of window-table
           do (log-errors
                (when controller
-                 (funcall fu window controller))
+                 (funcall controller-fu window controller))
                (when gamepad
-                 (funcall fu window gamepad))))))
+                 (funcall gamepad-fu window gamepad))))))
 
 
 (glfw:define-joystick-callback on-joystick-event (joystick-id event-id)
@@ -55,10 +55,25 @@
       (cond
         ((= event-id %glfw:+connected+)
          (register-controller controller-hub joystick-id)
-         (invoke-controller-listeners #'on-controller-connect joystick-id))
+         (invoke-controller-listeners #'on-controller-connect
+                                      #'on-gamepad-connect
+                                      joystick-id))
         ((= event-id %glfw:+disconnected+)
-         (invoke-controller-listeners #'on-controller-disconnect joystick-id)
+         (invoke-controller-listeners #'on-controller-disconnect
+                                      #'on-gamepad-disconnect
+                                      joystick-id)
          (remove-controller controller-hub joystick-id))))))
+
+
+(defun %update-gamepad-mappings ()
+  (when-let ((controller-db-file (bodge-util:getenv "BODGE_GAMECONTROLLERDB")))
+    (if-let ((controller-db-truename (probe-file controller-db-file)))
+      (when (= (%glfw:update-gamepad-mappings
+                (bodge-util:read-file-into-string controller-db-truename))
+               %glfw:+false+)
+        (warn "Failed to read gamepad mappings from ~A"
+              controller-db-truename))
+      (warn "Gamepad mappings file ~A not found" controller-db-file))))
 
 
 (defun init-context (init-task)
@@ -66,6 +81,7 @@
     (flet ((%init-task ()
              (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
              (setf controller-hub (make-controller-hub))
+             (%update-gamepad-mappings)
              (funcall init-task)))
       ;; don't expose hats as buttons
       (%glfw:init-hint %glfw:+joystick-hat-buttons+ %glfw:+false+)
