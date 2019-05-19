@@ -3,6 +3,10 @@
 
 (declaim (special *window*))
 
+
+(defvar *event-wait-timeout* (float 1/120 0d0))
+
+
 (defclass host-context (bodge-concurrency:lockable)
   ((task-queue :initform (make-task-queue))
    (enabled-p :initform nil)
@@ -21,6 +25,16 @@
 (defmacro with-context-locked (&body body)
   `(bodge-concurrency:with-instance-lock-held (*context*)
      ,@body))
+
+
+(defun push-to-main-thread (fn)
+  (with-slots (task-queue) *context*
+    (push-task fn task-queue)
+    (%glfw:post-empty-event)))
+
+
+(defmacro progm (&body body)
+  `(push-to-main-thread (lambda () ,@body)))
 
 
 (defun invoke-controller-listeners (fu joystick-id)
@@ -85,7 +99,7 @@
     (tagbody begin
        (restart-case
            (loop while (context-enabled-p)
-                 do (%glfw:wait-events)
+                 do (%glfw:wait-events-timeout (float *event-wait-timeout* 0d0))
                     (drain task-queue))
          (ignore ()
            :report "Continue looping in main thread"
@@ -138,15 +152,6 @@
     (with-slots (window-table) *context*
       (remhash (cffi:pointer-address (claw:ptr win)) window-table))))
 
-
-(defun push-to-main-thread (fn)
-  (with-slots (task-queue) *context*
-    (push-task fn task-queue)
-    (%glfw:post-empty-event)))
-
-
-(defmacro progm (&body body)
-  `(push-to-main-thread (lambda () ,@body)))
 
 
 (defun open-window (window)

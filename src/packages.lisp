@@ -3,7 +3,8 @@
   (:reexport-from :bodge-math
                   #:x
                   #:y)
-  (:export #:window
+  (:export #:*event-wait-timeout*
+           #:window
            #:open-window
            #:close-window
            #:show-window
