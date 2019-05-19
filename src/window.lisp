@@ -36,6 +36,22 @@
   (:method (app) (declare (ignore app))))
 
 
+(defgeneric on-controller-connect (window controller)
+  (:method (window controller) (declare (ignore window controller))))
+
+
+(defgeneric on-controller-disconnect (window controller)
+  (:method (window controller) (declare (ignore window controller))))
+
+
+(defgeneric on-gamepad-connect (window gamepad)
+  (:method (window gamepad) (declare (ignore window gamepad))))
+
+
+(defgeneric on-gamepad-disconnect (window gamepad)
+  (:method (window gamepad) (declare (ignore window gamepad))))
+
+
 (defgeneric on-log (window level control-string &rest arguments)
   (:method (handle level control-string &rest arguments)
     (declare (ignore handle level control-string arguments))))
@@ -407,10 +423,3 @@
   (with-slots ((this-cursor cursor)) window
     (%glfw:set-cursor (%handle-of window) cursor)
     (setf this-cursor cursor)))
-
-
-(defun register-controller-hub (hub)
-  (declare (ignore hub)))
-
-(defun remove-controller-hub (hub)
-  (declare (ignore hub)))

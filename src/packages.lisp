@@ -24,10 +24,9 @@
            #:on-character-input
            #:on-log
 
-           #:register-controller-listener
-           #:remove-controller-listener
            #:on-controller-connect
            #:on-controller-disconnect
+           #:list-controllers
            #:controller-name
            #:controller-axes
            #:controller-axis-value
@@ -35,6 +34,18 @@
            #:controller-button-pressed-p
            #:controller-hats
            #:controller-hat-state
+
+           #:list-gamepads
+           #:on-gamepad-connect
+           #:on-gamepad-disconnect
+           #:gamepad-name
+           #:gamepad-state
+           #:gamepad-state-button-pressed-p
+           #:gamepad-state-dpad
+           #:gamepad-state-left-stick
+           #:gamepad-state-right-stick
+           #:gamepad-state-left-trigger
+           #:gamepad-state-right-trigger
 
            #:bind-main-rendering-context
            #:bind-shared-rendering-context
@@ -44,6 +55,7 @@
 
            #:swap-buffers
            #:swap-interval
+           #:list-controllers
            #:viewport-title
            #:viewport-size
            #:with-viewport-dimensions

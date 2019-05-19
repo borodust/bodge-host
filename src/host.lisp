@@ -8,8 +8,7 @@
    (enabled-p :initform nil)
    (swap-interval :initform 0)
    (window-table :initform (make-hash-table))
-   (controller-hub :initform nil)
-   (controller-listeners :initform nil)))
+   (controller-hub :initform nil)))
 
 (defvar *context* (make-instance 'host-context))
 
@@ -25,26 +24,36 @@
 
 
 (defun invoke-controller-listeners (fu joystick-id)
-  (with-slots (controller-listeners controller-hub) *context*
+  (with-slots (window-table controller-hub) *context*
     (loop with controller = (find-controller controller-hub joystick-id)
-          for listener in controller-listeners
-          do (log-errors (funcall fu listener controller)))))
+          with gamepad = (find-gamepad controller-hub joystick-id)
+          for window being the hash-value of window-table
+          do (log-errors
+               (when controller
+                 (funcall fu window controller))
+               (when gamepad
+                 (funcall fu window gamepad))))))
 
 
 (glfw:define-joystick-callback on-joystick-event (joystick-id event-id)
-  (progm
-    (cond
-      ((= event-id %glfw:+connected+)
-       (invoke-controller-listeners #'on-controller-connect joystick-id))
-      ((= event-id %glfw:+disconnected+)
-       (invoke-controller-listeners #'on-controller-disconnect joystick-id)))))
+  (with-slots (controller-hub) *context*
+    (progm
+      (cond
+        ((= event-id %glfw:+connected+)
+         (register-controller controller-hub joystick-id)
+         (invoke-controller-listeners #'on-controller-connect joystick-id))
+        ((= event-id %glfw:+disconnected+)
+         (invoke-controller-listeners #'on-controller-disconnect joystick-id)
+         (remove-controller controller-hub joystick-id))))))
 
 
 (defun init-context (init-task)
   (with-slots (enabled-p controller-hub) *context*
     (flet ((%init-task ()
+             (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
              (setf controller-hub (make-controller-hub))
              (funcall init-task)))
+      ;; don't expose hats as buttons
       (%glfw:init-hint %glfw:+joystick-hat-buttons+ %glfw:+false+)
       (setf enabled-p t
             *foreign-int-place* (claw:calloc :int))
@@ -55,12 +64,12 @@
 
 
 (defun release-context ()
-  (with-slots (enabled-p window-table controller-hub controller-listeners) *context*
+  (with-slots (enabled-p window-table controller-hub) *context*
+    (%glfw:set-joystick-callback nil)
     (destroy-controller-hub controller-hub)
     (claw:free *foreign-int-place*)
     (setf enabled-p nil
-          *foreign-int-place* nil
-          controller-listeners nil)
+          *foreign-int-place* nil)
     (unwind-protect
          (loop for window being the hash-value in window-table
                do (handler-case
@@ -178,21 +187,11 @@
     swap-interval))
 
 
-(defun register-controller-listener (listener)
-  (with-slots (controller-listeners controller-hub) *context*
-    (progm
-      (pushnew listener controller-listeners)
-      (flet ((%invoke-connected (controller)
-               (on-controller-connect listener controller)))
-        (for-each-controller controller-hub #'%invoke-connected)))
-    (values)))
+(defun list-controllers ()
+  (with-slots (controller-hub) *context*
+    (controller-hub-controllers controller-hub)))
 
 
-(defun remove-controller-hub (listener)
-  (with-slots (controller-hub controller-listeners) *context*
-    (progm
-      (flet ((%invoke-disconnected (controller)
-               (on-controller-disconnect listener controller)))
-        (for-each-controller controller-hub #'%invoke-disconnected))
-      (deletef controller-listeners listener))
-    (values)))
+(defun list-gamepads ()
+  (with-slots (controller-hub) *context*
+    (controller-hub-gamepads controller-hub)))

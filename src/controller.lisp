@@ -1,5 +1,8 @@
 (cl:in-package :bodge-host)
 
+;;;
+;;; CONTROLLER
+;;;
 (defstruct (axis
             (:constructor %make-axis (id controller-id)))
   (id 0 :type fixnum :read-only t)
@@ -42,29 +45,7 @@
                         (map-axes #'%make-hat hat-count)))))
 
 
-(defun find-controller (hub controller-id)
-  (gethash controller-id hub))
 
-
-(defun for-each-controller (hub fu)
-  (loop for controller being the hash-value of hub
-        do (log-errors (funcall fu controller))))
-
-
-(defun make-controller-hub ()
-  (check-host-thread)
-  (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
-  (loop with controller-hub = (make-hash-table)
-        for joystick-id from %glfw:+joystick-1+ upto %glfw:+joystick-last+
-        when (= (%glfw:joystick-present joystick-id) %glfw:+true+)
-          do (setf (gethash joystick-id controller-hub) (make-controller joystick-id))
-        finally (return controller-hub)))
-
-
-(defun destroy-controller-hub (hub)
-  (declare (ignore hub))
-  (check-host-thread)
-  (%glfw:set-joystick-callback nil))
 
 
 (defun controller-axis-value (axis)
@@ -80,7 +61,7 @@
 (defun controller-button-pressed-p (button)
   (check-host-thread)
   (claw:c-let ((len :int :from *foreign-int-place*))
-    (let ((button-values (%glfw:get-joystick-buttons (axis-controller-id button) (len &)))
+    (let ((button-values (%glfw:get-joystick-buttons (button-controller-id button) (len &)))
           (idx (axis-id button)))
       (claw:c-val ((button-values :char))
         (and (< -1 idx len)
@@ -110,9 +91,149 @@
           (glfw->hat-state (hat-values idx)))))))
 
 
-(defgeneric on-controller-connect (listener controller)
-  (:method (listener controller) (declare (ignore listener controller))))
+;;;
+;;; GAMEPAD
+;;;
+(defstruct (gamepad
+            (:constructor %make-gamepad (id name %state)))
+  id
+  name
+  %state)
+
+(defun make-gamepad (controller)
+  (%make-gamepad (controller-id controller)
+                 (controller-name controller)
+                 (claw:calloc '%glfw:gamepadstate)))
 
 
-(defgeneric on-controller-disconnect (listener controller)
-  (:method (listener controller) (declare (ignore listener controller))))
+(defun destroy-gamepad (gamepad)
+  (claw:free (gamepad-%state gamepad)))
+
+
+(defun gamepad-state (gamepad)
+  (let ((state-ptr (gamepad-%state gamepad)))
+    (%glfw:get-gamepad-state (gamepad-id gamepad) state-ptr)
+    state-ptr))
+
+
+(defun %gamepad-button-pressed-p (state button-id)
+  (claw:c-val ((state %glfw:gamepadstate))
+    (= (state :buttons button-id) %glfw:+press+)))
+
+
+(defun gamepad-button->nk (button)
+  (ecase button
+    (:a %glfw:+gamepad-button-a+)
+    (:b %glfw:+gamepad-button-b+)
+    (:x %glfw:+gamepad-button-x+)
+    (:y %glfw:+gamepad-button-y+)
+    (:left-bumper %glfw:+gamepad-button-left-bumper+)
+    (:right-bumper %glfw:+gamepad-button-right-bumper+)
+    (:start %glfw:+gamepad-button-start+)
+    (:back %glfw:+gamepad-button-back+)
+    (:guide %glfw:+gamepad-button-guide+)
+    (:left-thumb %glfw:+gamepad-button-left-thumb+)
+    (:right-thumb %glfw:+gamepad-button-right-thumb+)))
+
+
+(defun gamepad-state-button-pressed-p (gamepad-state button)
+  (%gamepad-button-pressed-p gamepad-state (gamepad-button->nk button)))
+
+
+(defun gamepad-state-dpad (gamepad-state)
+  (let ((up (%gamepad-button-pressed-p gamepad-state
+                                       %glfw:+gamepad-button-dpad-up+))
+        (down (%gamepad-button-pressed-p gamepad-state
+                                         %glfw:+gamepad-button-dpad-down+))
+        (left (%gamepad-button-pressed-p gamepad-state
+                                         %glfw:+gamepad-button-dpad-left+))
+        (right (%gamepad-button-pressed-p gamepad-state
+                                          %glfw:+gamepad-button-dpad-right+)))
+    (cond
+      ((and right up) :right-up)
+      ((and right down) :right-down)
+      ((and left up) :left-up)
+      ((and left down) :left-down)
+      (up :up)
+      (down :down)
+      (left :left)
+      (right :right))))
+
+
+(defun gamepad-state-left-stick (gamepad-state &optional (result (vec2)))
+  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+    (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-left-x+)
+          (y result) (gamepad-state :axes %glfw:+gamepad-axis-left-y+)))
+  result)
+
+
+(defun gamepad-state-right-stick (gamepad-state &optional (result (vec2)))
+  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+    (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-right-x+)
+          (y result) (gamepad-state :axes %glfw:+gamepad-axis-right-y+)))
+  result)
+
+
+(defun gamepad-state-left-trigger (gamepad-state)
+  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+    (gamepad-state :axes %glfw:+gamepad-axis-left-trigger+)))
+
+
+(defun gamepad-state-right-trigger (gamepad-state)
+  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+    (gamepad-state :axes %glfw:+gamepad-axis-right-trigger+)))
+
+
+
+;;;
+;;; CONTROLLER HUB
+;;;
+(defun make-controller-hub ()
+  (check-host-thread)
+  (loop with controller-hub = (make-hash-table)
+        for joystick-id from %glfw:+joystick-1+ upto %glfw:+joystick-last+
+        when (= (%glfw:joystick-present joystick-id) %glfw:+true+)
+          do (register-controller controller-hub joystick-id)
+        finally (return controller-hub)))
+
+
+(defun register-controller (hub joystick-id)
+  (let ((controller (make-controller joystick-id)))
+    (setf (gethash joystick-id hub) (cons controller nil))
+    (unless (= (%glfw:joystick-is-gamepad joystick-id) %glfw:+false+)
+      (let ((gamepad (make-gamepad controller)))
+        (setf (cdr (gethash joystick-id hub)) gamepad)))))
+
+
+(defun remove-controller (hub joystick-id)
+  (destructuring-bind (controller . gamepad) (gethash joystick-id hub)
+    (declare (ignore controller))
+    (when gamepad
+      (destroy-gamepad gamepad))
+    (setf (gethash joystick-id hub) nil)))
+
+
+(defun destroy-controller-hub (hub)
+  (loop for controller being the hash-value of hub
+        for controller-id = (controller-id (car controller))
+        do (remove-controller hub controller-id)))
+
+
+(defun controller-hub-controllers (hub)
+  (loop for controller being the hash-value of hub
+        collect (car controller)))
+
+
+(defun controller-hub-gamepads (hub)
+  (loop for controller being the hash-value of hub
+        for gamepad = (cdr controller)
+        when gamepad
+          collect gamepad))
+
+
+(defun find-controller (hub controller-id)
+  (car (gethash controller-id hub)))
+
+
+(defun find-gamepad (hub gamepad-id)
+  (cdr (gethash gamepad-id hub)))
