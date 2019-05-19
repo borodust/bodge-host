@@ -100,10 +100,8 @@
   name
   %state)
 
-(defun make-gamepad (controller)
-  (%make-gamepad (controller-id controller)
-                 (controller-name controller)
-                 (claw:calloc '%glfw:gamepadstate)))
+(defun make-gamepad (id name)
+  (%make-gamepad id name (claw:calloc '%glfw:gamepadstate)))
 
 
 (defun destroy-gamepad (gamepad)
@@ -201,7 +199,9 @@
   (let ((controller (make-controller joystick-id)))
     (setf (gethash joystick-id hub) (cons controller nil))
     (unless (= (%glfw:joystick-is-gamepad joystick-id) %glfw:+false+)
-      (let ((gamepad (make-gamepad controller)))
+      (let ((gamepad (make-gamepad joystick-id
+                                   (cffi:foreign-string-to-lisp
+                                    (%glfw:get-gamepad-name joystick-id)))))
         (setf (cdr (gethash joystick-id hub)) gamepad)))))
 
 
@@ -210,7 +210,7 @@
     (declare (ignore controller))
     (when gamepad
       (destroy-gamepad gamepad))
-    (setf (gethash joystick-id hub) nil)))
+    (remhash joystick-id hub)))
 
 
 (defun destroy-controller-hub (hub)
