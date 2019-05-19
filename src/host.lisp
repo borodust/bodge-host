@@ -37,6 +37,16 @@
   `(push-to-main-thread (lambda () ,@body)))
 
 
+(defun for-each-window (fu)
+  (with-slots (window-table) *context*
+    (loop for window being the hash-value of window-table
+          do (funcall fu window))))
+
+
+(defmacro do-windows ((win) &body body)
+  `(for-each-window (lambda (,win) ,@body)))
+
+
 (defun invoke-controller-listeners (controller-fu gamepad-fu joystick-id)
   (with-slots (window-table controller-hub) *context*
     (loop with controller = (find-controller controller-hub joystick-id)
@@ -110,12 +120,53 @@
     (stop-main-runner)))
 
 
+(defun update-gamepads ()
+  (with-slots (controller-hub) *context*
+    (flet ((%updated-gamepad (gamepad old-state new-state)
+             (unless (eq (gamepad-state-dpad old-state) (gamepad-state-dpad new-state))
+               (do-windows (win)
+                 (on-gamepad-action win gamepad :dpad (gamepad-state-dpad new-state))))
+             (loop for button in '(:a :b :x :y
+                                   :left-bumper :right-bumper
+                                   :start :back :guide
+                                   :left-thumb :right-thumb)
+                   unless (eq (gamepad-state-button-pressed-p old-state button)
+                              (gamepad-state-button-pressed-p new-state button))
+                     do (let ((state (if (gamepad-state-button-pressed-p new-state button)
+                                         :pressed
+                                         :released)))
+                          (do-windows (win)
+                            (on-gamepad-action win gamepad button state))))
+             (let ((old-vec (vec2))
+                   (new-vec (vec2)))
+               (unless (vec= (gamepad-state-left-stick old-state old-vec)
+                             (gamepad-state-left-stick new-state new-vec))
+                 (do-windows (win)
+                   (on-left-stick-movement win gamepad (x new-vec) (x new-vec))))
+               (unless (vec= (gamepad-state-right-stick old-state old-vec)
+                             (gamepad-state-right-stick new-state new-vec))
+                 (do-windows (win)
+                   (on-right-stick-movement win gamepad (x new-vec) (x new-vec)))))
+             (unless (= (gamepad-state-left-trigger old-state)
+                        (gamepad-state-left-trigger new-state))
+               (do-windows (win)
+                 (on-left-trigger win gamepad (gamepad-state-left-trigger new-state))))
+             (unless (= (gamepad-state-right-trigger old-state)
+                        (gamepad-state-right-trigger new-state))
+               (do-windows (win)
+                 (on-right-trigger win
+                                   gamepad
+                                   (gamepad-state-right-trigger new-state))))))
+      (for-each-updated-gamepad controller-hub #'%updated-gamepad))))
+
+
 (defun run-main-loop ()
   (with-slots (task-queue) *context*
     (tagbody begin
        (restart-case
            (loop while (context-enabled-p)
                  do (%glfw:wait-events-timeout (float *event-wait-timeout* 0d0))
+                    (update-gamepads)
                     (drain task-queue))
          (ignore ()
            :report "Continue looping in main thread"

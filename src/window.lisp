@@ -69,6 +69,26 @@
   (:method (app key state) (declare (ignore app key state))))
 
 
+(defgeneric on-gamepad-action (window gamepad button state)
+  (:method (window gamepad button state) (declare (ignore window gamepad button state))))
+
+
+(defgeneric on-left-stick-movement (window gamepad x y)
+  (:method (window gamepad x y) (declare (ignore window gamepad x y))))
+
+
+(defgeneric on-right-stick-movement (window gamepad x y)
+  (:method (window gamepad x y) (declare (ignore window gamepad x y))))
+
+
+(defgeneric on-left-trigger (window gamepad value)
+  (:method (window gamepad value) (declare (ignore window gamepad value))))
+
+
+(defgeneric on-right-trigger (window gamepad value)
+  (:method (window gamepad value) (declare (ignore window gamepad value))))
+
+
 (defgeneric on-cursor-movement (window x y)
   (:method (app x y) (declare (ignore app x y))))
 

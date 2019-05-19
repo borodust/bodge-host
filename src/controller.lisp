@@ -109,9 +109,7 @@
 
 
 (defun gamepad-state (gamepad)
-  (let ((state-ptr (gamepad-%state gamepad)))
-    (%glfw:get-gamepad-state (gamepad-id gamepad) state-ptr)
-    state-ptr))
+  (gamepad-%state gamepad))
 
 
 (defun %gamepad-button-pressed-p (state button-id)
@@ -155,7 +153,8 @@
       (up :up)
       (down :down)
       (left :left)
-      (right :right))))
+      (right :right)
+      (t :centered))))
 
 
 (defun gamepad-state-left-stick (gamepad-state &optional (result (vec2)))
@@ -237,3 +236,17 @@
 
 (defun find-gamepad (hub gamepad-id)
   (cdr (gethash gamepad-id hub)))
+
+
+(defun for-each-updated-gamepad (hub fu)
+  (claw:c-with ((tmp-state %glfw:gamepadstate :calloc t))
+    (loop for controller being the hash-value of hub
+          for gamepad = (cdr controller)
+          when gamepad
+            do (%glfw:get-gamepad-state (gamepad-id gamepad) (tmp-state &))
+               (unless (= (claw:memcmp (tmp-state &) (gamepad-%state gamepad)
+                                       1 '%glfw:gamepadstate)
+                          0)
+                 (funcall fu gamepad (gamepad-%state gamepad) (tmp-state &))
+                 (claw:memcpy (gamepad-%state gamepad) (tmp-state &)
+                              1 '%glfw:gamepadstate)))))

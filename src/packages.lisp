@@ -23,6 +23,11 @@
            #:on-framebuffer-size-change
            #:on-viewport-size-change
            #:on-character-input
+           #:on-gamepad-action
+           #:on-left-stick-movement
+           #:on-right-stick-movement
+           #:on-left-trigger
+           #:on-right-trigger
            #:on-log
 
            #:on-controller-connect
