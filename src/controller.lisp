@@ -20,9 +20,10 @@
 
 
 (defstruct (controller
-            (:constructor %make-controller (id name axes buttons hats)))
+            (:constructor %make-controller (id name guid axes buttons hats)))
   (id 0 :read-only t)
   (name "" :type string :read-only t)
+  (guid "" :type string)
   (axes nil :type list :read-only t)
   (buttons nil :type list :read-only t)
   (hats nil :type list :read-only t))
@@ -40,12 +41,10 @@
                    collect (funcall constructor idx id))))
       (%make-controller id
                         (cffi:foreign-string-to-lisp (%glfw:get-joystick-name id))
+                        (cffi:foreign-string-to-lisp (%glfw:get-joystick-guid id))
                         (map-axes #'%make-axis axis-count)
                         (map-axes #'%make-button button-count)
                         (map-axes #'%make-hat hat-count)))))
-
-
-
 
 
 (defun controller-axis-value (axis)
@@ -95,13 +94,20 @@
 ;;; GAMEPAD
 ;;;
 (defstruct (gamepad
-            (:constructor %make-gamepad (id name %state)))
-  id
-  name
+            (:constructor %make-gamepad (id name guid %state)))
+  (id 0 :type fixnum)
+  (name "" :type string)
+  (guid "" :type string)
   %state)
 
-(defun make-gamepad (id name)
-  (%make-gamepad id name (claw:calloc '%glfw:gamepadstate)))
+
+(defun make-gamepad (joystick-id)
+  (%make-gamepad joystick-id
+                 (cffi:foreign-string-to-lisp
+                  (%glfw:get-gamepad-name joystick-id))
+                 (cffi:foreign-string-to-lisp
+                  (%glfw:get-joystick-guid joystick-id))
+                 (claw:calloc '%glfw:gamepadstate)))
 
 
 (defun destroy-gamepad (gamepad)
@@ -198,9 +204,7 @@
   (let ((controller (make-controller joystick-id)))
     (setf (gethash joystick-id hub) (cons controller nil))
     (unless (= (%glfw:joystick-is-gamepad joystick-id) %glfw:+false+)
-      (let ((gamepad (make-gamepad joystick-id
-                                   (cffi:foreign-string-to-lisp
-                                    (%glfw:get-gamepad-name joystick-id)))))
+      (let ((gamepad (make-gamepad joystick-id)))
         (setf (cdr (gethash joystick-id hub)) gamepad)))))
 
 
