@@ -5,6 +5,10 @@
 
 
 (defvar *event-wait-timeout* (float 1/120 0d0))
+(defvar *gamepad-buttons* '(:a :b :x :y
+                            :left-bumper :right-bumper
+                            :start :back :guide
+                            :left-thumb :right-thumb))
 
 
 (defclass host-context (bodge-concurrency:lockable)
@@ -126,10 +130,7 @@
              (unless (eq (gamepad-state-dpad old-state) (gamepad-state-dpad new-state))
                (do-windows (win)
                  (on-gamepad-action win gamepad :dpad (gamepad-state-dpad new-state))))
-             (loop for button in '(:a :b :x :y
-                                   :left-bumper :right-bumper
-                                   :start :back :guide
-                                   :left-thumb :right-thumb)
+             (loop for button in *gamepad-buttons*
                    unless (eq (gamepad-state-button-pressed-p old-state button)
                               (gamepad-state-button-pressed-p new-state button))
                      do (let ((state (if (gamepad-state-button-pressed-p new-state button)
@@ -142,11 +143,11 @@
                (unless (vec= (gamepad-state-left-stick old-state old-vec)
                              (gamepad-state-left-stick new-state new-vec))
                  (do-windows (win)
-                   (on-left-stick-movement win gamepad (x new-vec) (x new-vec))))
+                   (on-left-stick-movement win gamepad (x new-vec) (y new-vec))))
                (unless (vec= (gamepad-state-right-stick old-state old-vec)
                              (gamepad-state-right-stick new-state new-vec))
                  (do-windows (win)
-                   (on-right-stick-movement win gamepad (x new-vec) (x new-vec)))))
+                   (on-right-stick-movement win gamepad (x new-vec) (y new-vec)))))
              (unless (= (gamepad-state-left-trigger old-state)
                         (gamepad-state-left-trigger new-state))
                (do-windows (win)
