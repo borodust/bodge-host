@@ -73,6 +73,10 @@
   (:method (window gamepad button state) (declare (ignore window gamepad button state))))
 
 
+(defgeneric on-dpad-action (window gamepad state)
+  (:method (window gamepad state) (declare (ignore window gamepad state))))
+
+
 (defgeneric on-left-stick-movement (window gamepad x y)
   (:method (window gamepad x y) (declare (ignore window gamepad x y))))
 

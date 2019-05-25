@@ -24,6 +24,7 @@
            #:on-viewport-size-change
            #:on-character-input
            #:on-gamepad-action
+           #:on-dpad-action
            #:on-left-stick-movement
            #:on-right-stick-movement
            #:on-left-trigger

@@ -127,9 +127,6 @@
 (defun update-gamepads ()
   (with-slots (controller-hub) *context*
     (flet ((%updated-gamepad (gamepad old-state new-state)
-             (unless (eq (gamepad-state-dpad old-state) (gamepad-state-dpad new-state))
-               (do-windows (win)
-                 (on-gamepad-action win gamepad :dpad (gamepad-state-dpad new-state))))
              (loop for button in *gamepad-buttons*
                    unless (eq (gamepad-state-button-pressed-p old-state button)
                               (gamepad-state-button-pressed-p new-state button))
@@ -138,6 +135,10 @@
                                          :released)))
                           (do-windows (win)
                             (on-gamepad-action win gamepad button state))))
+             (let ((new-dpad-state (gamepad-state-dpad new-state)))
+               (unless (eq (gamepad-state-dpad old-state) new-dpad-state)
+                 (do-windows (win)
+                   (on-dpad-action win gamepad new-dpad-state))))
              (let ((old-vec (vec2))
                    (new-vec (vec2)))
                (unless (vec= (gamepad-state-left-stick old-state old-vec)
