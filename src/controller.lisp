@@ -54,7 +54,7 @@
           (idx (axis-id axis)))
       (claw:c-val ((axis-values :float))
         (when (< -1 idx len)
-          (axis-values idx))))))
+          (* (+ (axis-values idx) 1) 0.5))))))
 
 
 (defun controller-button-pressed-p (button)
@@ -167,26 +167,25 @@
 (defun gamepad-state-left-stick (gamepad-state &optional (result (vec2)))
   (claw:c-val ((gamepad-state %glfw:gamepadstate))
     (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-left-x+)
-          (y result) (gamepad-state :axes %glfw:+gamepad-axis-left-y+)))
+          (y result) (- (gamepad-state :axes %glfw:+gamepad-axis-left-y+))))
   result)
 
 
 (defun gamepad-state-right-stick (gamepad-state &optional (result (vec2)))
   (claw:c-val ((gamepad-state %glfw:gamepadstate))
     (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-right-x+)
-          (y result) (gamepad-state :axes %glfw:+gamepad-axis-right-y+)))
+          (y result) (- (gamepad-state :axes %glfw:+gamepad-axis-right-y+))))
   result)
 
 
 (defun gamepad-state-left-trigger (gamepad-state)
   (claw:c-val ((gamepad-state %glfw:gamepadstate))
-    (gamepad-state :axes %glfw:+gamepad-axis-left-trigger+)))
+    (* (+ (gamepad-state :axes %glfw:+gamepad-axis-left-trigger+) 1) 0.5)))
 
 
 (defun gamepad-state-right-trigger (gamepad-state)
   (claw:c-val ((gamepad-state %glfw:gamepadstate))
-    (gamepad-state :axes %glfw:+gamepad-axis-right-trigger+)))
-
+    (* (+ (gamepad-state :axes %glfw:+gamepad-axis-right-trigger+) 1) 0.5)))
 
 
 ;;;
