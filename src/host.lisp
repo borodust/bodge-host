@@ -93,9 +93,9 @@
 (defun init-context (init-task)
   (with-slots (enabled-p controller-hub) *context*
     (flet ((%init-task ()
+             (%update-gamepad-mappings)
              (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
              (setf controller-hub (make-controller-hub))
-             (%update-gamepad-mappings)
              (funcall init-task)))
       ;; don't expose hats as buttons
       (%glfw:init-hint %glfw:+joystick-hat-buttons+ %glfw:+false+)
