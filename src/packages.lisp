@@ -43,6 +43,7 @@
            #:controller-hats
            #:controller-hat-state
 
+           #:update-gamepad-mappings
            #:list-gamepads
            #:on-gamepad-connect
            #:on-gamepad-disconnect
