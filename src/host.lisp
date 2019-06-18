@@ -184,7 +184,7 @@
                  do (%glfw:wait-events-timeout (float *event-wait-timeout* 0d0))
                     (update-gamepads)
                     (drain task-queue))
-         (ignore ()
+         (continue ()
            :report "Continue looping in main thread"
            (go begin))))))
 
