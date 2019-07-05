@@ -408,7 +408,7 @@
 
 
 (defun (setf fullscreen-viewport-p) (value window)
-  (with-slots (handle) window
+  (with-slots (handle width height) window
     (if value
         (let* ((monitor (%glfw:get-primary-monitor)))
           (claw:c-let ((video-mode %glfw:vidmode :from (%glfw:get-video-mode monitor)))
@@ -416,7 +416,11 @@
                                       (video-mode :width)
                                       (video-mode :height)
                                       (video-mode :refresh-rate))))
-        (%glfw:set-window-monitor handle (cffi:null-pointer) 100 100 640 480 %glfw:+dont-care+)))
+        (let ((scale (%viewport-autoscale window)))
+          (%glfw:set-window-monitor handle (cffi:null-pointer) 100 100
+                                    (round (* (or width +default-window-width+) scale))
+                                    (round (* (or height +default-window-height+) scale))
+                                    %glfw:+dont-care+))))
   value)
 
 
