@@ -2,10 +2,10 @@
 
 
 (defun available-monitors ()
-  (claw:c-with ((monitor-count :int)
-                (monitor-array :pointer :from (%glfw:get-monitors (monitor-count &))))
-    (loop for idx from 0 below monitor-count
-          collect (monitor-array idx))))
+  (c-with ((monitor-count :int))
+    (c-let ((monitor-array :pointer :from (%glfw:get-monitors (monitor-count &))))
+      (loop for idx from 0 below monitor-count
+            collect (monitor-array idx)))))
 
 
 (defun primary-monitor ()
@@ -21,8 +21,8 @@
 
 
 (defun monitor-position (monitor &optional (result-vec (vec2)))
-  (claw:c-with ((width :int)
-                (height :int))
+  (c-with ((width :int)
+           (height :int))
     (%glfw:get-monitor-pos monitor (width &) (height &))
     (setf (x result-vec) width
           (y result-vec) height))
@@ -30,7 +30,7 @@
 
 
 (defun monitor-content-scale (monitor)
-  (claw:c-with ((x :float))
+  (c-with ((x :float))
     (%glfw:get-monitor-content-scale monitor (x &) nil)
     x))
 
@@ -40,30 +40,30 @@
 
 
 (defun video-mode-width (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :width)))
 
 
 (defun video-mode-height (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :height)))
 
 
 (defun video-mode-refresh-rate (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :refresh-rate)))
 
 
 (defun video-mode-red-bits (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :red-bits)))
 
 
 (defun video-mode-green-bits (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :green-bits)))
 
 
 (defun video-mode-blue-bits (video-mode)
-  (claw:c-val ((video-mode %glfw:vidmode))
+  (c-val ((video-mode %glfw:vidmode))
     (video-mode :blue-bits)))
