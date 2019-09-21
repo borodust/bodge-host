@@ -15,7 +15,7 @@
   ((task-queue :initform (make-task-queue))
    (enabled-p :initform nil)
    (swap-interval :initform 0)
-   (window-table :initform (make-hash-table))
+   (window-table :initform (make-hash-table) :reader window-table-of)
    (controller-hub :initform nil)))
 
 (defvar *context* (make-instance 'host-context))
@@ -92,7 +92,7 @@
       (destroy-controller-hub controller-hub)
       (when (= (%glfw:update-gamepad-mappings mappings) %glfw:+false+)
         (warn "Failed to read gamepad mappings"))
-      (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
+      (%glfw:set-joystick-callback (cffi:callback on-joystick-event))
       (setf controller-hub (make-controller-hub))
       (for-each-window #'on-gamepad-connect #'on-controller-connect))))
 
@@ -108,14 +108,13 @@
   (with-slots (enabled-p controller-hub) *context*
     (flet ((%init-task ()
              (setf controller-hub (make-controller-hub))
-             (%glfw:set-joystick-callback (claw:callback 'on-joystick-event))
+             (%glfw:set-joystick-callback (cffi:callback on-joystick-event))
              (%update-gamepad-mappings)
              (funcall init-task)))
       ;; don't expose hats as buttons
       (%glfw:init-hint %glfw:+joystick-hat-buttons+ %glfw:+false+)
-      (setf enabled-p t
-            *foreign-int-place* (claw:calloc :int))
-      (%glfw:set-error-callback (claw:callback 'on-glfw-error))
+      (setf enabled-p t)
+      (%glfw:set-error-callback (cffi:callback on-glfw-error))
       (with-body-in-main-thread ()
         (let ((*host-thread-p* t))
           (init-main-loop #'%init-task))))))
@@ -125,9 +124,7 @@
   (with-slots (enabled-p window-table controller-hub) *context*
     (%glfw:set-joystick-callback nil)
     (destroy-controller-hub controller-hub)
-    (claw:free *foreign-int-place*)
-    (setf enabled-p nil
-          *foreign-int-place* nil)
+    (setf enabled-p nil)
     (unwind-protect
          (loop for window being the hash-value in window-table
                do (handler-case
@@ -190,7 +187,7 @@
 
 
 (defun init-main-loop (init-task)
-  (claw:with-float-traps-masked ()
+  (float-features:with-float-traps-masked t
     (glfw:with-init ()
       (unwind-protect
            (progn
@@ -213,28 +210,17 @@
         (setf enabled-p nil)))))
 
 
-(defun bind-main-rendering-context (window)
-  (%glfw:make-context-current (%handle-of window)))
-
-
-(defun find-window-by-handle (win-handle)
-  (with-slots (window-table) *context*
-    (unless (claw:null-pointer-p win-handle)
-      (gethash (cffi:pointer-address (claw:ptr win-handle)) window-table))))
-
-
 (defun register-window (window)
   (when-let ((win (%handle-of window)))
     (with-slots (window-table) *context*
-      (let ((key (cffi:pointer-address (claw:ptr win))))
+      (let ((key (cffi:pointer-address win)))
         (setf (gethash key window-table) window)))))
 
 
 (defun remove-window (window)
   (when-let ((win (%handle-of window)))
     (with-slots (window-table) *context*
-      (remhash (cffi:pointer-address (claw:ptr win)) window-table))))
-
+      (remhash (cffi:pointer-address win) window-table))))
 
 
 (defun open-window (window)

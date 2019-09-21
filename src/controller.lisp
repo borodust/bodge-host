@@ -30,9 +30,9 @@
 
 
 (defun make-controller (id)
-  (claw:c-with ((axis-count :int)
-                (hat-count :int)
-                (button-count :int))
+  (c-with ((axis-count :int)
+           (hat-count :int)
+           (button-count :int))
     (%glfw:get-joystick-axes id (axis-count &))
     (%glfw:get-joystick-hats id (hat-count &))
     (%glfw:get-joystick-buttons id (button-count &))
@@ -49,21 +49,21 @@
 
 (defun controller-axis-value (axis)
   (check-host-thread)
-  (claw:c-let ((len :int :from *foreign-int-place*))
+  (c-with ((len :int))
     (let ((axis-values (%glfw:get-joystick-axes (axis-controller-id axis) (len &)))
           (idx (axis-id axis)))
-      (claw:c-val ((axis-values :float))
+      (c-val ((axis-values :float))
         (when (< -1 idx len)
           (* (+ (axis-values idx) 1) 0.5))))))
 
 
 (defun controller-button-pressed-p (button)
   (check-host-thread)
-  (claw:c-let ((len :int :from *foreign-int-place*))
+  (c-with ((len :int))
     (let ((button-values (%glfw:get-joystick-buttons (button-controller-id button)
                                                      (len &)))
           (idx (axis-id button)))
-      (claw:c-val ((button-values :char))
+      (c-val ((button-values :char))
         (and (< -1 idx len)
              (= %glfw:+press+ (button-values idx)))))))
 
@@ -83,10 +83,10 @@
 
 (defun controller-hat-state (hat)
   (check-host-thread)
-  (claw:c-let ((len :int :from *foreign-int-place*))
+  (c-with ((len :int))
     (let ((hat-values (%glfw:get-joystick-hats (axis-controller-id hat) (len &)))
           (idx (axis-id hat)))
-      (claw:c-val ((hat-values :char))
+      (c-val ((hat-values :char))
         (when (< -1 idx len)
           (glfw->hat-state (hat-values idx)))))))
 
@@ -103,16 +103,17 @@
 
 
 (defun make-gamepad (joystick-id)
-  (%make-gamepad joystick-id
-                 (cffi:foreign-string-to-lisp
-                  (%glfw:get-gamepad-name joystick-id))
-                 (cffi:foreign-string-to-lisp
-                  (%glfw:get-joystick-guid joystick-id))
-                 (claw:calloc '%glfw:gamepadstate)))
+  (c-let ((state %glfw:gamepadstate :alloc t :clear t))
+    (%make-gamepad joystick-id
+                   (cffi:foreign-string-to-lisp
+                    (%glfw:get-gamepad-name joystick-id))
+                   (cffi:foreign-string-to-lisp
+                    (%glfw:get-joystick-guid joystick-id))
+                   (state &))))
 
 
 (defun destroy-gamepad (gamepad)
-  (claw:free (gamepad-%state gamepad)))
+  (cffi:foreign-free (gamepad-%state gamepad)))
 
 
 (defun gamepad-state (gamepad)
@@ -120,7 +121,7 @@
 
 
 (defun %gamepad-button-pressed-p (state button-id)
-  (claw:c-val ((state %glfw:gamepadstate))
+  (c-val ((state %glfw:gamepadstate))
     (= (state :buttons button-id) %glfw:+press+)))
 
 
@@ -165,26 +166,26 @@
 
 
 (defun gamepad-state-left-stick (gamepad-state &optional (result (vec2)))
-  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+  (c-val ((gamepad-state %glfw:gamepadstate))
     (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-left-x+)
           (y result) (- (gamepad-state :axes %glfw:+gamepad-axis-left-y+))))
   result)
 
 
 (defun gamepad-state-right-stick (gamepad-state &optional (result (vec2)))
-  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+  (c-val ((gamepad-state %glfw:gamepadstate))
     (setf (x result) (gamepad-state :axes %glfw:+gamepad-axis-right-x+)
           (y result) (- (gamepad-state :axes %glfw:+gamepad-axis-right-y+))))
   result)
 
 
 (defun gamepad-state-left-trigger (gamepad-state)
-  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+  (c-val ((gamepad-state %glfw:gamepadstate))
     (* (+ (gamepad-state :axes %glfw:+gamepad-axis-left-trigger+) 1) 0.5)))
 
 
 (defun gamepad-state-right-trigger (gamepad-state)
-  (claw:c-val ((gamepad-state %glfw:gamepadstate))
+  (c-val ((gamepad-state %glfw:gamepadstate))
     (* (+ (gamepad-state :axes %glfw:+gamepad-axis-right-trigger+) 1) 0.5)))
 
 
@@ -243,14 +244,14 @@
 
 
 (defun for-each-updated-gamepad (hub fu)
-  (claw:c-with ((tmp-state %glfw:gamepadstate :calloc t))
+  (c-with ((tmp-state %glfw:gamepadstate :clear t))
     (loop for controller being the hash-value of hub
           for gamepad = (cdr controller)
           when gamepad
             do (%glfw:get-gamepad-state (gamepad-id gamepad) (tmp-state &))
-               (unless (= (claw:memcmp (tmp-state &) (gamepad-%state gamepad)
-                                       1 '%glfw:gamepadstate)
+               (unless (= (%libc.es:memcmp (tmp-state &) (gamepad-%state gamepad)
+                                           (cffi:foreign-type-size '%glfw:gamepadstate))
                           0)
                  (funcall fu gamepad (gamepad-%state gamepad) (tmp-state &))
-                 (claw:memcpy (gamepad-%state gamepad) (tmp-state &)
-                              1 '%glfw:gamepadstate)))))
+                 (%libc.es:memcpy (gamepad-%state gamepad) (tmp-state &)
+                                  (cffi:foreign-type-size '%glfw:gamepadstate))))))

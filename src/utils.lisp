@@ -1,6 +1,6 @@
 (cl:in-package :bodge-host)
 
-(defvar *foreign-int-place* nil)
+(declaim (special *context*))
 
 (defvar *host-thread-p* nil)
 
@@ -109,3 +109,18 @@
 (defun check-host-thread ()
   (unless *host-thread-p*
     (error "This function must be called within main thread. Use 'progm or #'push-to-main-thread")))
+
+
+;;;
+;;; CONTEXT
+;;;
+(defgeneric window-table-of (context))
+
+
+(defun find-window-by-handle (win-handle)
+  (unless (or (not win-handle) (cffi:null-pointer-p win-handle))
+    (gethash (cffi:pointer-address win-handle) (window-table-of *context*))))
+
+
+(defun bind-main-rendering-context (window)
+  (%glfw:make-context-current (%handle-of window)))

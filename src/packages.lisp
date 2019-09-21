@@ -1,5 +1,5 @@
 (bodge-util:define-package :bodge-host
-  (:use :cl :bodge-concurrency :bodge-util :bodge-math)
+  (:use :cl :bodge-concurrency :bodge-util :bodge-math :cffi-c-ref)
   (:reexport-from :bodge-math
                   #:x
                   #:y)
@@ -97,6 +97,4 @@
            #:video-mode-refresh-rate
            #:video-mode-red-bits
            #:video-mode-green-bits
-           #:video-mode-blue-bits
-
-           #:read-screen-region))
+           #:video-mode-blue-bits))
