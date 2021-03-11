@@ -19,13 +19,18 @@
    (maximized :initform nil :initarg :maximized)
    (samples :initform nil :initarg :samples)
    (position :initform nil :initarg :position)
-   (autoscaled :initform t :initarg :autoscaled :reader viewport-autoscaled-p)))
+   (autoscaled :initform t :initarg :autoscaled :reader viewport-autoscaled-p)
+   (modifier-mask :initform 0 :reader %modifier-mask-of)))
 
 
 (defmethod initialize-instance :after ((this window) &key opengl-version)
   (with-slots (gl-major-version gl-minor-version) this
     (setf gl-major-version (or (first opengl-version) 3)
           gl-minor-version (or (second opengl-version) 3))))
+
+
+(defun %update-modifier-mask (win mask)
+  (setf (slot-value win 'modifier-mask) mask))
 
 
 (defgeneric on-init (window)
@@ -167,16 +172,33 @@
 
 
 (glfw:define-key-callback on-key-action (window key scancode action mod-keys)
-  (declare (ignore scancode mod-keys))
-  (on-key-action (find-window-by-handle window)
-                 (glfw-enumval->keyboard-key key)
-                 (glfw-enumval->button-state action)))
+  (declare (ignore scancode))
+  (let ((win (find-window-by-handle window)))
+    (%update-modifier-mask win mod-keys)
+    (on-key-action win
+                   (glfw-enumval->keyboard-key key)
+                   (glfw-enumval->button-state action))))
 
 
 (glfw:define-mouse-button-callback on-mouse-action (window button action mod-keys)
-  (declare (ignore mod-keys))
-  (on-mouse-action (find-window-by-handle window)
-                   (glfw-enumval->mouse-button button) (glfw-enumval->button-state action)))
+  (let ((win (find-window-by-handle window)))
+    (%update-modifier-mask win mod-keys)
+    (on-mouse-action win
+                     (glfw-enumval->mouse-button button) (glfw-enumval->button-state action))))
+
+
+(defun modifiers-engaged-p (window &rest modifiers)
+  (let ((modifier-mask (%modifier-mask-of window)))
+    (unless (zerop modifier-mask)
+      (loop for modifier in modifiers
+            never (zerop (logand modifier-mask
+                                 (ecase modifier
+                                   (:shift %glfw:+mod-shift+)
+                                   (:control %glfw:+mod-control+)
+                                   (:alt %glfw:+mod-alt+)
+                                   (:super %glfw:+mod-super+)
+                                   (:caps-lock %glfw:+mod-caps-lock+)
+                                   (:num-lock %glfw:+mod-num-lock+))))))))
 
 
 (glfw:define-cursor-pos-callback on-cursor-movement (window x y)

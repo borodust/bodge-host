@@ -16,6 +16,7 @@
            #:on-init
            #:on-destroy
            #:on-hide
+           #:modifiers-engaged-p
            #:on-key-action
            #:on-mouse-action
            #:on-cursor-movement

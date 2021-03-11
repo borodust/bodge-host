@@ -32,7 +32,7 @@
 
 
 (defenum keyboard-key-modifier
-  :shift :control :alt :super)
+  :shift :control :alt :super :caps-lock :num-lock)
 
 
 (defenum mouse-button
