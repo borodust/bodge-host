@@ -5,7 +5,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :depends-on (:bodge-utilities
-               :cffi-c-ref :claw :bodge-libc-essentials :bodge-concurrency
+               :cffi-c-ref :bodge-libc-essentials :bodge-concurrency
                :bodge-math :bodge-glfw :glfw-blob :float-features)
   :pathname "src/"
   :serial t
