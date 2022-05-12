@@ -66,6 +66,10 @@
   (:method (app) (declare (ignore app))))
 
 
+(defgeneric on-focus (window focus)
+  (:method (app focus) (declare (ignore app focus))))
+
+
 (defgeneric on-key-action (window key state)
   (:method (app key state) (declare (ignore app key state))))
 
@@ -225,6 +229,9 @@
                              (round (/ w scale))
                              (round (/ h scale)))))
 
+(glfw:define-window-focus-callback on-viewport-focus-change (window focused)
+  (on-focus (find-window-by-handle window) focused))
+
 
 (glfw:define-char-callback on-character-input (window char-code)
   (let ((character (code-char char-code)))
@@ -237,6 +244,7 @@
 
 (defun init-callbacks (window)
   (%glfw:set-window-close-callback window (cffi:callback on-close))
+  (%glfw:set-window-focus-callback window (cffi:callback on-viewport-focus-change))
   (%glfw:set-key-callback window (cffi:callback on-key-action))
   (%glfw:set-mouse-button-callback window (cffi:callback on-mouse-action))
   (%glfw:set-cursor-pos-callback window (cffi:callback on-cursor-movement))
